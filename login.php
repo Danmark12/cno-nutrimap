@@ -1,7 +1,6 @@
 <?php
 session_start();
 require 'db/config.php';
-require 'otp/mailer.php';
 
 $error = '';
 
@@ -60,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     /* Top brand header */
     .brand {
       font-weight: bold;
-      font-size: 20px;
+      font-size: 22px; /* Slightly bigger */
       padding: 20px 40px;
     }
 
@@ -82,23 +81,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .login-box {
-      width: 320px;
+      width: 360px; /* Slightly bigger box */
     }
 
     .login-box h2 {
       margin-bottom: 25px;
-      font-size: 24px;
+      font-size: 26px; /* Bigger heading */
       font-weight: bold;
       color: #000;
     }
 
     .login-box input {
       width: 100%;
-      padding: 12px;
-      margin-bottom: 15px;
+      padding: 14px; /* Slightly bigger input */
+      margin-bottom: 18px;
       border: 1px solid #ccc;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 15px; /* Slightly bigger text */
       background: #fff;
       box-sizing: border-box;
     }
@@ -117,18 +116,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       right: 12px;
       transform: translateY(-50%);
       cursor: pointer;
-      font-size: 16px;
+      font-size: 18px;
       color: #555;
     }
 
     .login-box button {
       width: 100%;
-      padding: 12px;
+      padding: 14px;
       background: #008080;
       color: white;
       border: none;
       border-radius: 6px;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: bold;
       cursor: pointer;
     }
@@ -138,22 +137,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .options {
-      margin-top: 10px;
-      font-size: 13px;
+      margin-top: 12px;
+      font-size: 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
+    }
+
+    .options label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
     }
 
     .options a {
       text-decoration: none;
       color: #00AEEF;
+      font-weight: bold;
     }
 
     .error {
       color: red;
-      font-size: 14px;
-      margin-bottom: 10px;
+      font-size: 15px;
+      margin-bottom: 12px;
       text-align: center;
     }
 
@@ -165,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .right-panel img {
-      max-width: 80%;
+      max-width: 85%; /* Make image slightly bigger */
       height: auto;
     }
   </style>
