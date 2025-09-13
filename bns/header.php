@@ -97,7 +97,7 @@
 
 <div id="sidemenu-container"></div>
 
-<script>
+<!-- <script>
 document.getElementById('menuBtn').addEventListener('click', async () => {
   const container = document.getElementById('sidemenu-container');
 
@@ -117,4 +117,45 @@ document.getElementById('menuBtn').addEventListener('click', async () => {
   const menu = document.getElementById('sideMenu');
   if (menu) menu.classList.add('open');
 });
+</script> -->
+
+<script>
+document.getElementById('menuBtn').addEventListener('click', async () => {
+  const container = document.getElementById('sidemenu-container');
+
+  // Load side menu only once
+  if (!container.innerHTML.trim()) {
+    const response = await fetch('sidemenu.php');
+    const html = await response.text();
+    container.innerHTML = html;
+
+    const menu = document.getElementById('sideMenu');
+    if (!menu) return;
+
+    // Close button
+    const closeBtn = menu.querySelector('.close-btn');
+    if (closeBtn) closeBtn.addEventListener('click', () => menu.classList.remove('open'));
+
+    // Menu items with data-url
+    const menuItems = menu.querySelectorAll('.menu-links li[data-url]');
+    menuItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const url = item.getAttribute('data-url');
+        if (url) window.location.href = url;
+        menu.classList.remove('open'); // close menu
+      });
+    });
+
+    // Footer links (optional: close menu on click)
+    const footerLinks = menu.querySelectorAll('.footer-links a');
+    footerLinks.forEach(link => {
+      link.addEventListener('click', () => menu.classList.remove('open'));
+    });
+  }
+
+  // Open menu
+  const menu = document.getElementById('sideMenu');
+  if (menu) menu.classList.add('open');
+});
 </script>
+

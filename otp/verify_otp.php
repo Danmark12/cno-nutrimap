@@ -39,9 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             unset($_SESSION['pending_user_id'], $_SESSION['pending_user_type'], $_SESSION['pending_first_name'], $_SESSION['pending_user_email']);
 
             if ($_SESSION['user_type'] === 'admin') {
-                header("Location: cno/dashboard.php");
+                header("Location: cno/home.php");
             } else {
-                header("Location: bns/dashboard.php");
+                header("Location: bns/home.php");
             }
             exit;
         } else {
