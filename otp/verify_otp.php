@@ -1,6 +1,7 @@
 <?php
 session_start();
 require '../db/config.php';
+require 'mailer.php'; 
 
 if (!isset($_SESSION['pending_user_id'])) {
     header("Location: login.php");
@@ -8,35 +9,44 @@ if (!isset($_SESSION['pending_user_id'])) {
 }
 
 $error = '';
+$user_id = $_SESSION['pending_user_id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $otp = trim($_POST['otp']);
-    $user_id = $_SESSION['pending_user_id'];
+    if (isset($_POST['resend'])) {
+        // ✅ Generate new OTP for Resend
+        $otp = rand(100000, 999999);
+        $expires = date("Y-m-d H:i:s", strtotime("+5 minutes"));
 
-    $stmt = $pdo->prepare("SELECT * FROM otp_codes WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
-    $stmt->execute([$user_id]);
-    $code = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt = $pdo->prepare("INSERT INTO otp_codes (user_id, otp_code, expires_at) VALUES (?, ?, ?)");
+        $stmt->execute([$user_id, $otp, $expires]);
 
-    if ($code && $code['otp_code'] === $otp && strtotime($code['expires_at']) > time()) {
-        // ✅ OTP verified
-        $_SESSION['user_id'] = $user_id;
-        $_SESSION['user_type'] = $_SESSION['pending_user_type'];
-        $_SESSION['first_name'] = $_SESSION['pending_first_name'];
-
-        unset($_SESSION['pending_user_id'], $_SESSION['pending_user_type'], $_SESSION['pending_first_name']);
-
-        // 🔹 Removed last_login update since column doesn’t exist
-        // $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?")->execute([$user_id]);
-
-        // Redirect based on role
-        if ($_SESSION['user_type'] === 'admin') {
-            header("Location: admin_dashboard.php");
-        } else {
-            header("Location: bns/dashboard.php");
-        }
-        exit;
+        // Send OTP
+        sendOTP($_SESSION['pending_user_email'], $otp);
+        $_SESSION['otp_message'] = "A new OTP has been sent to your email.";
     } else {
-        $error = "Invalid or expired OTP!";
+        $otp = trim($_POST['otp']);
+
+        $stmt = $pdo->prepare("SELECT * FROM otp_codes WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
+        $stmt->execute([$user_id]);
+        $code = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($code && $code['otp_code'] === $otp && strtotime($code['expires_at']) > time()) {
+            // ✅ OTP verified
+            $_SESSION['user_id'] = $user_id;
+            $_SESSION['user_type'] = $_SESSION['pending_user_type'];
+            $_SESSION['first_name'] = $_SESSION['pending_first_name'];
+
+            unset($_SESSION['pending_user_id'], $_SESSION['pending_user_type'], $_SESSION['pending_first_name'], $_SESSION['pending_user_email']);
+
+            if ($_SESSION['user_type'] === 'admin') {
+                header("Location: admin_dashboard.php");
+            } else {
+                header("Location: bns/dashboard.php");
+            }
+            exit;
+        } else {
+            $error = "Invalid or expired OTP!";
+        }
     }
 }
 ?>
@@ -57,11 +67,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($error): ?>
       <p style="color:red;"><?php echo $error; ?></p>
     <?php endif; ?>
+
     <form method="POST">
       <input type="text" name="otp" maxlength="6" placeholder="Enter OTP"
              style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:5px; text-align:center; font-size:16px;" required>
       <button type="submit" style="width:100%; padding:10px; background:#28a745; color:white; border:none; border-radius:5px; font-size:15px; cursor:pointer;">
         Verify
+      </button>
+    </form>
+
+    <!-- ✅ Resend OTP button -->
+    <form method="POST" style="margin-top:15px;">
+      <button type="submit" name="resend" style="width:100%; padding:10px; background:#007BFF; color:white; border:none; border-radius:5px; font-size:15px; cursor:pointer;">
+        Resend OTP
       </button>
     </form>
   </div>

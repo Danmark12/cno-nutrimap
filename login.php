@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['pending_user_id'] = $user['id'];
             $_SESSION['pending_user_type'] = $user['user_type'];
             $_SESSION['pending_first_name'] = $user['first_name'];
+            $_SESSION['pending_user_email'] = $user['email']; 
 
             if (sendOTP($user['email'], $otp)) {
                 $_SESSION['otp_message'] = "We sent a One-Time Password (OTP) to your email.";
@@ -63,6 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <title>CNO NutriMap - Login</title>
+  <!-- ✅ Font Awesome for Eye Icon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     body {
       margin: 0;
@@ -103,18 +106,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     .login-box h2 {
       margin-bottom: 25px;
-      font-size: 26px; /* Bigger heading */
+      font-size: 26px;
       font-weight: bold;
       color: #000;
     }
 
     .login-box input {
       width: 100%;
-      padding: 14px; /* Slightly bigger input */
+      padding: 14px;
       margin-bottom: 18px;
       border: 1px solid #ccc;
       border-radius: 6px;
-      font-size: 15px; /* Slightly bigger text */
+      font-size: 15px;
       background: #fff;
       box-sizing: border-box;
     }
@@ -129,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     .toggle-password {
       position: absolute;
-      top: 50%;
+      top: 40%;
       right: 12px;
       transform: translateY(-50%);
       cursor: pointer;
@@ -190,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .right-panel img {
-      max-width: 85%; /* Make image slightly bigger */
+      max-width: 85%;
       height: auto;
     }
   </style>
@@ -212,20 +215,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST">
-          <!-- ✅ Auto-fill email if cookie exists -->
           <input type="text" name="email" placeholder="Enter Email" value="<?= htmlspecialchars($rememberedEmail) ?>" required>
 
           <div class="password-wrapper">
             <input type="password" id="password" name="password" placeholder="Enter Password" required>
-            <span class="toggle-password" onclick="togglePassword()">👁</span>
+            <!-- ✅ Replaced 👁 with Font Awesome Eye -->
+            <span class="toggle-password" onclick="togglePassword()">
+              <i id="eyeIcon" class="fa-solid fa-eye"></i>
+            </span>
           </div>
 
           <button type="submit">Log in</button>
 
           <div class="options">
-            <!-- ✅ Added name="remember" -->
             <label><input type="checkbox" name="remember" <?= isset($_COOKIE['remember_email']) ? 'checked' : '' ?>> Remember me!</label>
-            <a href="index.php">Just visit!</a> <!-- ✅ Route back to index.php -->
+            <a href="index.php">Just visit!</a>
           </div>
         </form>
       </div>
@@ -240,7 +244,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <script>
     function togglePassword() {
       const passwordField = document.getElementById('password');
-      passwordField.type = passwordField.type === "password" ? "text" : "password";
+      const eyeIcon = document.getElementById('eyeIcon');
+
+      if (passwordField.type === "password") {
+        passwordField.type = "text";
+        eyeIcon.classList.remove("fa-eye");
+        eyeIcon.classList.add("fa-eye-slash");
+      } else {
+        passwordField.type = "password";
+        eyeIcon.classList.remove("fa-eye-slash");
+        eyeIcon.classList.add("fa-eye");
+      }
     }
   </script>
 

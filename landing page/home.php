@@ -1,5 +1,5 @@
 <?php
-// index.php
+// home.php
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -114,6 +114,52 @@
                 max-width: 250px;
             }
         }
+
+        /* Login Box at Bottom */
+        .login-section {
+            background: #f8f8f8;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #ddd;
+        }
+        .login-section form {
+            display: inline-block;
+            max-width: 350px;
+            text-align: left;
+        }
+        .login-section input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .login-section button {
+            width: 100%;
+            background: #008080;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .login-section button:hover {
+            background: #006666;
+        }
+        .options {
+            margin-top: 10px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .options a {
+            text-decoration: none;
+            color: #00AEEF;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -126,10 +172,7 @@
             <a href="#">NUTRITIONAL MAP</a>
             <a href="#">GET TO KNOW US</a>
             <a href="#">CONTACT US</a>
-            <!-- Updated LOGIN button with link -->
-            <a href="login.php">
-                <button class="login-btn">LOGIN</button>
-            </a>
+            <a href="login.php"><button class="login-btn">LOGIN</button></a>
         </div>
     </div>
 
@@ -142,6 +185,19 @@
             <button>Know More About Us!</button>
         </div>
         <img class="hero-img" src="https://cdn.pixabay.com/photo/2020/10/17/08/06/nutrition-5660917_1280.png" alt="Nutrition Illustration">
+    </div>
+
+    <!-- LOGIN SECTION -->
+    <div class="login-section">
+        <form method="POST" action="login_api.php">
+            <input type="text" name="email" placeholder="Enter Email" required>
+            <input type="password" name="password" placeholder="Enter Password" required>
+            <button type="submit">Log in</button>
+            <div class="options">
+                <label><input type="checkbox" name="remember"> Remember me!</label>
+                <a href="index.php">Just visit!</a>
+            </div>
+        </form>
     </div>
 
 </body>
