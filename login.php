@@ -5,9 +5,17 @@ require 'otp/mailer.php';
 
 $error = '';
 
+// ✅ If "Remember Me" cookies exist, auto-fill email
+if (isset($_COOKIE['remember_email'])) {
+    $rememberedEmail = $_COOKIE['remember_email'];
+} else {
+    $rememberedEmail = '';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
     $password = trim($_POST['password']);
+    $remember = isset($_POST['remember']); // ✅ Capture remember me checkbox
 
     if (!empty($email) && !empty($password)) {
         $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? OR username = ?");
@@ -15,6 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password_hash'])) {
+
+            // ✅ Save Remember Me cookie for 7 days if checked
+            if ($remember) {
+                setcookie('remember_email', $email, time() + (7 * 24 * 60 * 60), "/");
+            } else {
+                setcookie('remember_email', '', time() - 3600, "/"); // Clear if unchecked
+            }
+
             $otp = rand(100000, 999999);
             $expires = date("Y-m-d H:i:s", strtotime("+5 minutes"));
 
@@ -196,7 +212,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST">
-          <input type="text" name="email" placeholder="Enter Email" required>
+          <!-- ✅ Auto-fill email if cookie exists -->
+          <input type="text" name="email" placeholder="Enter Email" value="<?= htmlspecialchars($rememberedEmail) ?>" required>
 
           <div class="password-wrapper">
             <input type="password" id="password" name="password" placeholder="Enter Password" required>
@@ -206,8 +223,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <button type="submit">Log in</button>
 
           <div class="options">
-            <label><input type="checkbox"> Remember me!</label>
-            <a href="#">Just visit!</a>
+            <!-- ✅ Added name="remember" -->
+            <label><input type="checkbox" name="remember" <?= isset($_COOKIE['remember_email']) ? 'checked' : '' ?>> Remember me!</label>
+            <a href="index.php">Just visit!</a> <!-- ✅ Route back to index.php -->
           </div>
         </form>
       </div>
