@@ -1,0 +1,221 @@
+<?php
+session_start();
+require 'db/config.php';
+require 'otp/mailer.php';
+
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = trim($_POST['email']);
+    $password = trim($_POST['password']);
+
+    if (!empty($email) && !empty($password)) {
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? OR username = ?");
+        $stmt->execute([$email, $email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user && password_verify($password, $user['password_hash'])) {
+            $otp = rand(100000, 999999);
+            $expires = date("Y-m-d H:i:s", strtotime("+5 minutes"));
+
+            $stmt = $pdo->prepare("INSERT INTO otp_codes (user_id, otp_code, expires_at) VALUES (?, ?, ?)");
+            $stmt->execute([$user['id'], $otp, $expires]);
+
+            $_SESSION['pending_user_id'] = $user['id'];
+            $_SESSION['pending_user_type'] = $user['user_type'];
+            $_SESSION['pending_first_name'] = $user['first_name'];
+
+            if (sendOTP($user['email'], $otp)) {
+                $_SESSION['otp_message'] = "We sent a One-Time Password (OTP) to your email.";
+            } else {
+                $_SESSION['otp_message'] = "Failed to send OTP email. Please contact admin.";
+            }
+
+            header("Location: otp/verify_otp.php");
+            exit;
+        } else {
+            $error = "Invalid email/username or password!";
+        }
+    } else {
+        $error = "All fields are required!";
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CNO NutriMap - Login</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #d3d3d3;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* Top brand header */
+    .brand {
+      font-weight: bold;
+      font-size: 20px;
+      padding: 20px 40px;
+    }
+
+    .brand span {
+      color: #00AEEF;
+    }
+
+    /* Main container split */
+    .container {
+      flex: 1;
+      display: flex;
+    }
+
+    .left-panel {
+      width: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .login-box {
+      width: 320px;
+    }
+
+    .login-box h2 {
+      margin-bottom: 25px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #000;
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+      background: #fff;
+      box-sizing: border-box;
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-wrapper input {
+      padding-right: 40px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 16px;
+      color: #555;
+    }
+
+    .login-box button {
+      width: 100%;
+      padding: 12px;
+      background: #008080;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .login-box button:hover {
+      background: #006666;
+    }
+
+    .options {
+      margin-top: 10px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .options a {
+      text-decoration: none;
+      color: #00AEEF;
+    }
+
+    .error {
+      color: red;
+      font-size: 14px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .right-panel {
+      width: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .right-panel img {
+      max-width: 80%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top brand -->
+  <div class="brand"><span>CNO</span> NutriMap</div>
+
+  <!-- Split panels -->
+  <div class="container">
+    <!-- Left login form -->
+    <div class="left-panel">
+      <div class="login-box">
+        <h2>LOGIN</h2>
+
+        <?php if (!empty($error)): ?>
+          <p class="error"><?= $error ?></p>
+        <?php endif; ?>
+
+        <form method="POST">
+          <input type="text" name="email" placeholder="Enter Email" required>
+
+          <div class="password-wrapper">
+            <input type="password" id="password" name="password" placeholder="Enter Password" required>
+            <span class="toggle-password" onclick="togglePassword()">👁</span>
+          </div>
+
+          <button type="submit">Log in</button>
+
+          <div class="options">
+            <label><input type="checkbox"> Remember me!</label>
+            <a href="#">Just visit!</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Right illustration -->
+    <div class="right-panel">
+      <img src="image/5e6e5fc215adb11085b8fe0e59d5fd05-removebg-preview.png" alt="Nutrition Illustration">
+    </div>
+  </div>
+
+  <script>
+    function togglePassword() {
+      const passwordField = document.getElementById('password');
+      passwordField.type = passwordField.type === "password" ? "text" : "password";
+    }
+  </script>
+
+</body>
+</html>
