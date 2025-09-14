@@ -146,11 +146,42 @@ document.getElementById('menuBtn').addEventListener('click', async () => {
       });
     });
 
-    // Footer links (optional: close menu on click)
-    const footerLinks = menu.querySelectorAll('.footer-links a');
+    // Footer links (logout etc.)
+    const footerLinks = menu.querySelectorAll('.footer-links > a');
     footerLinks.forEach(link => {
       link.addEventListener('click', () => menu.classList.remove('open'));
     });
+
+    // ==============================
+    // Settings Dropdown Handling
+    // ==============================
+    const settingsBtn = menu.querySelector('#settingsBtn');
+    const settingsMenu = menu.querySelector('#settingsMenu');
+
+    if (settingsBtn && settingsMenu) {
+      // Toggle dropdown
+      settingsBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) {
+          settingsMenu.style.display = 'none';
+        }
+      });
+
+      // Submenu items (Archive, Security)
+      const settingsItems = settingsMenu.querySelectorAll('li[data-url]');
+      settingsItems.forEach(item => {
+        item.addEventListener('click', () => {
+          const url = item.getAttribute('data-url');
+          if (url) window.location.href = url;
+          menu.classList.remove('open'); // also close side menu
+        });
+      });
+    }
   }
 
   // Open menu
@@ -158,4 +189,5 @@ document.getElementById('menuBtn').addEventListener('click', async () => {
   if (menu) menu.classList.add('open');
 });
 </script>
+
 
