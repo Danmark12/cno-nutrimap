@@ -113,13 +113,35 @@ input[type="text"], input[type="number"] { width:100%; padding:4px; font-size:13
         <?php endif; ?>
 
 <div class="form-wrapper">
-  <h2 style="text-align:center; margin-bottom:5px;">BNS Form No. IC</h2>
-  <h3 style="text-align:center; margin:0;">Barangay Nutrition Profile</h3>
+
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+
+    <!-- Left: Titles -->
+    <div style="text-align:left;">
+      <h2 style="margin:0; font-size:15px;">BNS Form No. IC</h2>
+      <h3 style="margin:0; font-size:15px;">Barangay Nutrition Profile</h3>
+    </div>
+
+    <!-- Right: Logos -->
+    <div style="display:flex; align-items:center; gap:15px;">
+      <!-- Dynamic Barangay Logo -->
+      <img src="../logos/barangays/<?= strtolower(str_replace(' ', '_', $barangay)) ?>.png" 
+           alt="<?= htmlspecialchars($barangay) ?> Logo" 
+           style="height:100px;">
+
+      <!-- Fixed Logos -->
+      <img src="../logos/fixed/Seal_of_El_Salvador__Misamis_Oriental-removebg-preview.png" alt="Logo 1" style="height:100px;">
+      <img src="../logos/fixed/National_Nutrition_Council__NNC_.svg-removebg-preview.png" alt="Logo 2" style="height:100px;">
+      <img src="../logos/fixed/Bagong-Pilipinas-logo.png" alt="Logo 3" style="height:100px;">
+    </div>
+  </div>
+
   <h3 style="text-align:center; margin:0 0 15px 0;">BARANGAY SITUATIONAL ANALYSIS (BSA)</h3>
    <h3 style="text-align:center; margin:0;"  ><strong>Calendar Year</strong> 
     <input type="number" name="year" value="2025" style="width:80px;"> &nbsp;&nbsp;</h3>
 
-  <div style="text-align:left; margin-bottom:20px; font-size:14px;">
+
+  <div style="text-align:center; margin-bottom:20px; font-size:14px;">
     <strong>Barangay:</strong> 
     <input type="text" name="barangay" value="<?= htmlspecialchars($barangay) ?>" readonly style="width:200px;"> &nbsp;&nbsp;
     <strong>City/Municipality:</strong> EL SALVADOR CITY &nbsp;&nbsp;
