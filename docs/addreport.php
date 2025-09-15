@@ -4,32 +4,9 @@ require '../db/config.php';
 
 // ✅ Require login
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../auth/login.php");
-    exit();
+    header("Location: login.php");
+    exit;
 }
-
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $title = trim($_POST['title']);
-    $user_id = $_SESSION['user_id'];
-
-    try {
-        // Insert report → always Pending by default
-        $stmt = $pdo->prepare("
-            INSERT INTO reports (user_id, title, report_time, report_date, status) 
-            VALUES (?, ?, CURTIME(), CURDATE(), 'Pending')
-        ");
-        $stmt->execute([$user_id, $title]);
-
-        // ✅ Redirect with success message
-        $_SESSION['success'] = "Report submitted successfully and is pending approval.";
-        header("Location: home.php");
-        exit();
-
-    } catch (PDOException $e) {
-        die("Error: " . $e->getMessage());
-    }
-}
-
 
 $barangay = $_SESSION['barangay']; // auto-fill from session
 $success = '';

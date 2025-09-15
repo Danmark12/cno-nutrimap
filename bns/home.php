@@ -1,4 +1,49 @@
 <?php
+session_start();
+require '../db/config.php'; // adjust path if needed
+
+// ✅ Current user
+$userId = $_SESSION['user_id'] ?? null;
+
+// ✅ Total reports
+$totalStmt = $pdo->prepare("SELECT COUNT(*) 
+    FROM reports 
+    WHERE user_id = ?");
+$totalStmt->execute([$userId]);
+$totalReports = $totalStmt->fetchColumn();
+
+// ✅ Approved reports
+$approvedStmt = $pdo->prepare("SELECT COUNT(*) 
+    FROM reports 
+    WHERE user_id = ? AND status = 'Approved'");
+$approvedStmt->execute([$userId]);
+$approvedReports = $approvedStmt->fetchColumn();
+
+// ✅ Pending reports
+$pendingStmt = $pdo->prepare("SELECT COUNT(*) 
+    FROM reports 
+    WHERE user_id = ? AND status = 'Pending'");
+$pendingStmt->execute([$userId]);
+$pendingReports = $pendingStmt->fetchColumn();
+
+// ✅ Approved reports list (My Reports sidebar)
+$approvedListStmt = $pdo->prepare("SELECT r.id, r.title 
+    FROM reports r
+    WHERE r.user_id = ? AND r.status = 'Approved'
+    ORDER BY r.created_at DESC
+    LIMIT 5");
+$approvedListStmt->execute([$userId]);
+$approvedReportsList = $approvedListStmt->fetchAll();
+
+// ✅ Pending reports list (main panel)
+$pendingListStmt = $pdo->prepare("SELECT r.id, r.title, u.barangay, r.status, r.report_time, r.report_date
+    FROM reports r
+    JOIN users u ON r.user_id = u.id
+    WHERE r.user_id = ? AND r.status = 'Pending'
+    ORDER BY r.created_at DESC
+    LIMIT 5");
+$pendingListStmt->execute([$userId]);
+$pendingReportsList = $pendingListStmt->fetchAll();
 ?>
 <!doctype html>
 <html lang="en">
@@ -6,7 +51,6 @@
   <meta charset="utf-8">
   <title>CNO NutriMap — Dashboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
   body {
@@ -19,12 +63,10 @@
     height:100vh;
     flex-direction:column;
   }
-  /* Body layout */
   .body-layout {
     display:flex;
     flex:1;
   }
-  /* Sidebar */
   .sidebar {
     width:250px;
     background:#f9f9f9;
@@ -65,7 +107,6 @@
     color:#333;
     cursor:pointer;
   }
-  /* Main content */
   .content {
     flex:1;
     padding:15px;
@@ -76,7 +117,6 @@
     margin:0 0 15px 0;
     font-size:18px;
   }
-  /* Dashboard cards */
   .cards {
     display:flex;
     gap:15px;
@@ -94,7 +134,6 @@
   .card.total { background:#003d3c; }
   .card.approved { background:#006d6a; }
   .card.pending { background:#009688; }
-  /* Pending reports */
   .panel {
     background:white;
     border:1px solid #ccc;
@@ -131,12 +170,11 @@
     border-bottom:1px solid #ccc;
   }
   tbody tr { height:35px; border-bottom:1px solid #eee; }
-  tbody td { padding:8px; color:#888; }
+  tbody td { padding:8px; color:#555; }
   </style>
 </head>
 <body>
   <div class="layout">
-    <!-- Header -->
     <?php include 'header.php'; ?>
 
     <div class="body-layout">
@@ -149,7 +187,12 @@
         <div class="searchbox">
           <input type="text" placeholder="Find a report...">
         </div>
-        <div class="showmore" id="showMoreBtn">Show more:</div>
+        <ul>
+          <?php foreach ($approvedReportsList as $report): ?>
+            <li><?= htmlspecialchars($report['title']) ?></li>
+          <?php endforeach; ?>
+        </ul>
+        <div class="showmore" id="showMoreBtn" onclick="window.location.href='report_history.php'">Show more:</div>
       </aside>
 
       <!-- Main -->
@@ -158,51 +201,50 @@
         <div class="cards">
           <div class="card total" id="totalCard">
             <div class="title">Total Reports:</div>
-            <div class="number">0</div>
+            <div class="number"><?= $totalReports ?></div>
           </div>
           <div class="card approved" id="approvedCard">
             <div class="title">Approved:</div>
-            <div class="number">0</div>
+            <div class="number"><?= $approvedReports ?></div>
           </div>
           <div class="card pending" id="pendingCard">
             <div class="title">Pending:</div>
-            <div class="number">0</div>
+            <div class="number"><?= $pendingReports ?></div>
           </div>
         </div>
         <div class="panel">
           <div class="panel-header">
             <h3>Pending Reports</h3>
-            <button class="view-all" id="viewAllBtn">View All</button>
+            <button class="view-all" id="viewAllBtn" onclick="window.location.href='reports.php'">View All</button>
           </div>
           <table>
             <thead>
               <tr>
-                <th>Name:</th>
-                <th>Title:</th>
-                <th>Barangay:</th>
-                <th>Status:</th>
-                <th>Time:</th>
-                <th>Date:</th>
+                <th>Title</th>
+                <th>Barangay</th>
+                <th>Status</th>
+                <th>Time</th>
+                <th>Date</th>
               </tr>
             </thead>
             <tbody>
-              <tr><td colspan="6"></td></tr>
-              <tr><td colspan="6"></td></tr>
-              <tr><td colspan="6"></td></tr>
-              <tr><td colspan="6"></td></tr>
-              <tr><td colspan="6"></td></tr>
-              <tr><td colspan="6"></td></tr>
-              <tr><td colspan="6"></td></tr>
-              <tr><td colspan="6"></td></tr>
-              <tr><td colspan="6"></td></tr>
+              <?php foreach ($pendingReportsList as $report): ?>
+                <tr>
+                  <td><?= htmlspecialchars($report['title']) ?></td>
+                  <td><?= htmlspecialchars($report['barangay']) ?></td>
+                  <td><?= htmlspecialchars($report['status']) ?></td>
+                  <td><?= htmlspecialchars($report['report_time']) ?></td>
+                  <td><?= htmlspecialchars($report['report_date']) ?></td>
+                </tr>
+              <?php endforeach; ?>
+              <?php if (empty($pendingReportsList)): ?>
+                <tr><td colspan="5" style="text-align:center;color:#999;">No pending reports</td></tr>
+              <?php endif; ?>
             </tbody>
           </table>
         </div>
       </main>
     </div>
   </div>
-
-  <!-- JS for button actions -->
-
 </body>
 </html>
