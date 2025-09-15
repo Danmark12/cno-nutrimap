@@ -31,16 +31,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 setcookie('remember_email', '', time() - 3600, "/"); // Clear if unchecked
             }
 
+            // ✅ Generate OTP
             $otp = rand(100000, 999999);
             $expires = date("Y-m-d H:i:s", strtotime("+5 minutes"));
 
             $stmt = $pdo->prepare("INSERT INTO otp_codes (user_id, otp_code, expires_at) VALUES (?, ?, ?)");
             $stmt->execute([$user['id'], $otp, $expires]);
 
-            $_SESSION['pending_user_id'] = $user['id'];
-            $_SESSION['pending_user_type'] = $user['user_type'];
+            // ✅ Save user info temporarily until OTP verification
+            $_SESSION['pending_user_id']    = $user['id'];
+            $_SESSION['pending_user_type']  = $user['user_type'];
             $_SESSION['pending_first_name'] = $user['first_name'];
             $_SESSION['pending_user_email'] = $user['email']; 
+            $_SESSION['pending_barangay']   = $user['barangay']; // ✅ save barangay
 
             if (sendOTP($user['email'], $otp)) {
                 $_SESSION['otp_message'] = "We sent a One-Time Password (OTP) to your email.";
@@ -58,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

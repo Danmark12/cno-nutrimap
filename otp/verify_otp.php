@@ -31,17 +31,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $code = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($code && $code['otp_code'] === $otp && strtotime($code['expires_at']) > time()) {
-            // ✅ OTP verified
-            $_SESSION['user_id'] = $user_id;
+            // ✅ OTP verified → finalize login session
+            $_SESSION['user_id']   = $user_id;
             $_SESSION['user_type'] = $_SESSION['pending_user_type'];
             $_SESSION['first_name'] = $_SESSION['pending_first_name'];
+            $_SESSION['email']     = $_SESSION['pending_user_email'];
+            $_SESSION['barangay']  = $_SESSION['pending_barangay']; // ✅ barangay saved
 
-            unset($_SESSION['pending_user_id'], $_SESSION['pending_user_type'], $_SESSION['pending_first_name'], $_SESSION['pending_user_email']);
+            // optional: save username if needed
+            if (isset($_SESSION['pending_username'])) {
+                $_SESSION['username'] = $_SESSION['pending_username'];
+            }
 
-            if ($_SESSION['user_type'] === 'admin') {
-                header("Location: cno/home.php");
+            // ✅ clear pending values
+            unset(
+                $_SESSION['pending_user_id'], 
+                $_SESSION['pending_user_type'], 
+                $_SESSION['pending_first_name'], 
+                $_SESSION['pending_user_email'],
+                $_SESSION['pending_barangay'],
+                $_SESSION['pending_username']
+            );
+
+            // ✅ redirect based on role
+            if ($_SESSION['user_type'] === 'CNO') {
+                header("Location: ../cno/home.php");
             } else {
-                header("Location: bns/home.php");
+                header("Location: ../bns/home.php");
             }
             exit;
         } else {
@@ -50,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
