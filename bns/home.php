@@ -196,54 +196,77 @@ $pendingReportsList = $pendingListStmt->fetchAll();
       </aside>
 
       <!-- Main -->
-      <main class="content">
-        <h2>Dashboard</h2>
-        <div class="cards">
-          <div class="card total" id="totalCard">
-            <div class="title">Total Reports:</div>
-            <div class="number"><?= $totalReports ?></div>
-          </div>
-          <div class="card approved" id="approvedCard">
-            <div class="title">Approved:</div>
-            <div class="number"><?= $approvedReports ?></div>
-          </div>
-          <div class="card pending" id="pendingCard">
-            <div class="title">Pending:</div>
-            <div class="number"><?= $pendingReports ?></div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-header">
-            <h3>Pending Reports</h3>
-            <button class="view-all" id="viewAllBtn" onclick="window.location.href='reports.php'">View All</button>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Barangay</th>
-                <th>Status</th>
-                <th>Time</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($pendingReportsList as $report): ?>
-                <tr>
-                  <td><?= htmlspecialchars($report['title']) ?></td>
-                  <td><?= htmlspecialchars($report['barangay']) ?></td>
-                  <td><?= htmlspecialchars($report['status']) ?></td>
-                  <td><?= htmlspecialchars($report['report_time']) ?></td>
-                  <td><?= htmlspecialchars($report['report_date']) ?></td>
-                </tr>
-              <?php endforeach; ?>
-              <?php if (empty($pendingReportsList)): ?>
-                <tr><td colspan="5" style="text-align:center;color:#999;">No pending reports</td></tr>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
-      </main>
+<main class="content">
+
+
+  <?php if (isset($_SESSION['success'])): ?>
+  <div id="successMessage" style="background: #d4edda; color: #155724; padding: 10px; margin: 10px 0; border-radius: 5px;">
+      <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+  </div>
+
+  <script>
+    // Hide success message after 20 seconds (20000 milliseconds)
+    setTimeout(() => {
+      const msg = document.getElementById('successMessage');
+      if (msg) {
+        msg.style.transition = 'opacity 1s';
+        msg.style.opacity = '0';
+        setTimeout(() => msg.remove(), 1000); // remove element after fade out
+      }
+    }, 20000);
+  </script>
+  <?php endif; ?>
+
+  <h2>Dashboard</h2>
+  <div class="cards">
+    <div class="card total" id="totalCard">
+      <div class="title">Total Reports:</div>
+      <div class="number"><?= $totalReports ?></div>
+    </div>
+    <div class="card approved" id="approvedCard">
+      <div class="title">Approved:</div>
+      <div class="number"><?= $approvedReports ?></div>
+    </div>
+    <div class="card pending" id="pendingCard">
+      <div class="title">Pending:</div>
+      <div class="number"><?= $pendingReports ?></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h3>Pending Reports</h3>
+      <button class="view-all" id="viewAllBtn" onclick="window.location.href='reports.php'">View All</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Barangay</th>
+          <th>Status</th>
+          <th>Time</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($pendingReportsList as $report): ?>
+          <tr>
+            <td><?= htmlspecialchars($report['title']) ?></td>
+            <td><?= htmlspecialchars($report['barangay']) ?></td>
+            <td><?= htmlspecialchars($report['status']) ?></td>
+            <td><?= htmlspecialchars($report['report_time']) ?></td>
+            <td><?= htmlspecialchars($report['report_date']) ?></td>
+          </tr>
+        <?php endforeach; ?>
+        <?php if (empty($pendingReportsList)): ?>
+          <tr><td colspan="5" style="text-align:center;color:#999;">No pending reports</td></tr>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
     </div>
   </div>
 </body>
