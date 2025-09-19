@@ -7,40 +7,44 @@ $userId = $_SESSION['user_id'] ?? null;
 
 // ✅ Total reports
 $totalStmt = $pdo->prepare("SELECT COUNT(*) 
-    FROM reports 
-    WHERE user_id = ?");
+    FROM reports r
+    JOIN bns_reports b ON r.id = b.report_id
+    WHERE r.user_id = ?");
 $totalStmt->execute([$userId]);
 $totalReports = $totalStmt->fetchColumn();
 
 // ✅ Approved reports
 $approvedStmt = $pdo->prepare("SELECT COUNT(*) 
-    FROM reports 
-    WHERE user_id = ? AND status = 'Approved'");
+    FROM reports r
+    JOIN bns_reports b ON r.id = b.report_id
+    WHERE r.user_id = ? AND r.status = 'Approved'");
 $approvedStmt->execute([$userId]);
 $approvedReports = $approvedStmt->fetchColumn();
 
 // ✅ Pending reports
 $pendingStmt = $pdo->prepare("SELECT COUNT(*) 
-    FROM reports 
-    WHERE user_id = ? AND status = 'Pending'");
+    FROM reports r
+    JOIN bns_reports b ON r.id = b.report_id
+    WHERE r.user_id = ? AND r.status = 'Pending'");
 $pendingStmt->execute([$userId]);
 $pendingReports = $pendingStmt->fetchColumn();
 
 // ✅ Approved reports list (My Reports sidebar)
-$approvedListStmt = $pdo->prepare("SELECT r.id, r.title 
+$approvedListStmt = $pdo->prepare("SELECT r.id, b.title 
     FROM reports r
+    JOIN bns_reports b ON r.id = b.report_id
     WHERE r.user_id = ? AND r.status = 'Approved'
-    ORDER BY r.created_at DESC
+    ORDER BY r.report_date DESC
     LIMIT 5");
 $approvedListStmt->execute([$userId]);
 $approvedReportsList = $approvedListStmt->fetchAll();
 
 // ✅ Pending reports list (main panel)
-$pendingListStmt = $pdo->prepare("SELECT r.id, r.title, u.barangay, r.status, r.report_time, r.report_date
+$pendingListStmt = $pdo->prepare("SELECT r.id, b.title, b.barangay, r.status, r.report_time, r.report_date
     FROM reports r
-    JOIN users u ON r.user_id = u.id
+    JOIN bns_reports b ON r.id = b.report_id
     WHERE r.user_id = ? AND r.status = 'Pending'
-    ORDER BY r.created_at DESC
+    ORDER BY r.report_date DESC
     LIMIT 5");
 $pendingListStmt->execute([$userId]);
 $pendingReportsList = $pendingListStmt->fetchAll();
@@ -196,77 +200,74 @@ $pendingReportsList = $pendingListStmt->fetchAll();
       </aside>
 
       <!-- Main -->
-<main class="content">
+      <main class="content">
 
+      <?php if (isset($_SESSION['success'])): ?>
+      <div id="successMessage" style="background: #d4edda; color: #155724; padding: 10px; margin: 10px 0; border-radius: 5px;">
+          <?= $_SESSION['success']; unset($_SESSION['success']); ?>
+      </div>
 
-  <?php if (isset($_SESSION['success'])): ?>
-  <div id="successMessage" style="background: #d4edda; color: #155724; padding: 10px; margin: 10px 0; border-radius: 5px;">
-      <?= $_SESSION['success']; unset($_SESSION['success']); ?>
-  </div>
+      <script>
+        setTimeout(() => {
+          const msg = document.getElementById('successMessage');
+          if (msg) {
+            msg.style.transition = 'opacity 1s';
+            msg.style.opacity = '0';
+            setTimeout(() => msg.remove(), 1000);
+          }
+        }, 20000);
+      </script>
+      <?php endif; ?>
 
-  <script>
-    // Hide success message after 20 seconds (20000 milliseconds)
-    setTimeout(() => {
-      const msg = document.getElementById('successMessage');
-      if (msg) {
-        msg.style.transition = 'opacity 1s';
-        msg.style.opacity = '0';
-        setTimeout(() => msg.remove(), 1000); // remove element after fade out
-      }
-    }, 20000);
-  </script>
-  <?php endif; ?>
+      <h2>Dashboard</h2>
+      <div class="cards">
+        <div class="card total" id="totalCard">
+          <div class="title">Total Reports:</div>
+          <div class="number"><?= $totalReports ?></div>
+        </div>
+        <div class="card approved" id="approvedCard">
+          <div class="title">Approved:</div>
+          <div class="number"><?= $approvedReports ?></div>
+        </div>
+        <div class="card pending" id="pendingCard">
+          <div class="title">Pending:</div>
+          <div class="number"><?= $pendingReports ?></div>
+        </div>
+      </div>
 
-  <h2>Dashboard</h2>
-  <div class="cards">
-    <div class="card total" id="totalCard">
-      <div class="title">Total Reports:</div>
-      <div class="number"><?= $totalReports ?></div>
-    </div>
-    <div class="card approved" id="approvedCard">
-      <div class="title">Approved:</div>
-      <div class="number"><?= $approvedReports ?></div>
-    </div>
-    <div class="card pending" id="pendingCard">
-      <div class="title">Pending:</div>
-      <div class="number"><?= $pendingReports ?></div>
-    </div>
-  </div>
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Pending Reports</h3>
+          <button class="view-all" id="viewAllBtn" onclick="window.location.href='reports.php'">View All</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Barangay</th>
+              <th>Status</th>
+              <th>Time</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($pendingReportsList as $report): ?>
+              <tr>
+                <td><?= htmlspecialchars($report['title']) ?></td>
+                <td><?= htmlspecialchars($report['barangay']) ?></td>
+                <td><?= htmlspecialchars($report['status']) ?></td>
+                <td><?= htmlspecialchars($report['report_time']) ?></td>
+                <td><?= htmlspecialchars($report['report_date']) ?></td>
+              </tr>
+            <?php endforeach; ?>
+            <?php if (empty($pendingReportsList)): ?>
+              <tr><td colspan="5" style="text-align:center;color:#999;">No pending reports</td></tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
 
-  <div class="panel">
-    <div class="panel-header">
-      <h3>Pending Reports</h3>
-      <button class="view-all" id="viewAllBtn" onclick="window.location.href='reports.php'">View All</button>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Barangay</th>
-          <th>Status</th>
-          <th>Time</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($pendingReportsList as $report): ?>
-          <tr>
-            <td><?= htmlspecialchars($report['title']) ?></td>
-            <td><?= htmlspecialchars($report['barangay']) ?></td>
-            <td><?= htmlspecialchars($report['status']) ?></td>
-            <td><?= htmlspecialchars($report['report_time']) ?></td>
-            <td><?= htmlspecialchars($report['report_date']) ?></td>
-          </tr>
-        <?php endforeach; ?>
-        <?php if (empty($pendingReportsList)): ?>
-          <tr><td colspan="5" style="text-align:center;color:#999;">No pending reports</td></tr>
-        <?php endif; ?>
-      </tbody>
-    </table>
-  </div>
-
-</main>
-
+      </main>
     </div>
   </div>
 </body>

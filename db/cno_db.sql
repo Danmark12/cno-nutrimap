@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 15, 2025 at 02:17 PM
+-- Generation Time: Sep 16, 2025 at 05:40 AM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -31,6 +31,7 @@ CREATE TABLE `barangay_bns_reports` (
   `id` int(11) NOT NULL,
   `barangay` varchar(150) NOT NULL,
   `year` year(4) NOT NULL,
+  `report_id` int(11) DEFAULT NULL,
   `ind1_total_population` int(11) DEFAULT NULL,
   `ind2_households` int(11) DEFAULT NULL,
   `ind3_families` int(11) DEFAULT NULL,
@@ -163,7 +164,10 @@ CREATE TABLE `otp_codes` (
 
 INSERT INTO `otp_codes` (`id`, `user_id`, `otp_code`, `created_at`, `expires_at`) VALUES
 (9, 2, '970074', '2025-09-15 05:23:48', '2025-09-15 07:28:48'),
-(10, 2, '699247', '2025-09-15 11:57:40', '2025-09-15 14:02:40');
+(10, 2, '699247', '2025-09-15 11:57:40', '2025-09-15 14:02:40'),
+(11, 5, '949655', '2025-09-15 14:36:52', '2025-09-15 16:41:52'),
+(12, 5, '796328', '2025-09-15 14:37:01', '2025-09-15 16:42:01'),
+(13, 2, '258143', '2025-09-16 03:31:44', '2025-09-16 05:36:44');
 
 -- --------------------------------------------------------
 
@@ -180,6 +184,13 @@ CREATE TABLE `reports` (
   `status` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `reports`
+--
+
+INSERT INTO `reports` (`id`, `user_id`, `title`, `report_time`, `report_date`, `status`, `created_at`) VALUES
+(1, 2, '', '22:22:44', '2025-09-15', 'Pending', '2025-09-15 14:22:44');
 
 -- --------------------------------------------------------
 
@@ -206,7 +217,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `first_name`, `last_name`, `username`, `phone_number`, `email`, `address`, `barangay`, `user_type`, `password_hash`, `created_at`) VALUES
-(2, 'Dan', 'Javier', 'dan', '09781716517', 'danmarkpetalcurin@gmail.com', 'st, joseph', 'Amoros', 'BNS', '$2y$10$z3vwZl.fpBSJAlPXAz4HTe8rKCVJTRd1CuYUun1YW9Se3s31NTydS', '2025-09-13 13:18:11');
+(2, 'Dan', 'Javier', 'dan', '09781716517', 'danmarkpetalcurin@gmail.com', 'st, joseph', 'Amoros', 'BNS', '$2y$10$z3vwZl.fpBSJAlPXAz4HTe8rKCVJTRd1CuYUun1YW9Se3s31NTydS', '2025-09-13 13:18:11'),
+(5, 'arl', 'ly', 'arly', '09476445486', 'audreyabigailhisanza.9@gmail.com', 'Tankulan', 'CNO', 'CNO', '$2y$10$hTi9BrY3K5Q0NOo35AA9oO5ahG3KG4ZTzssgWVturWIwI2rRJQi06', '2025-09-15 14:36:11');
 
 --
 -- Indexes for dumped tables
@@ -216,7 +228,8 @@ INSERT INTO `users` (`id`, `first_name`, `last_name`, `username`, `phone_number`
 -- Indexes for table `barangay_bns_reports`
 --
 ALTER TABLE `barangay_bns_reports`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_report` (`report_id`);
 
 --
 -- Indexes for table `otp_codes`
@@ -253,23 +266,29 @@ ALTER TABLE `barangay_bns_reports`
 -- AUTO_INCREMENT for table `otp_codes`
 --
 ALTER TABLE `otp_codes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `reports`
 --
 ALTER TABLE `reports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `barangay_bns_reports`
+--
+ALTER TABLE `barangay_bns_reports`
+  ADD CONSTRAINT `fk_report` FOREIGN KEY (`report_id`) REFERENCES `reports` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `reports`
@@ -281,8 +300,3 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-
-
-ALTER TABLE barangay_bns_reports
-ADD COLUMN report_id INT AFTER year,
-ADD CONSTRAINT fk_report FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE;

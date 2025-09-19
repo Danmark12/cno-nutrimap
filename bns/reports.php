@@ -7,11 +7,13 @@ $limit = 10; // reports per page
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
-// --- Fetch all reports with user info ---
+// --- Fetch all reports with user info and barangay ---
 $stmt = $pdo->prepare("
-    SELECT r.*, u.username 
+    SELECT r.id, r.report_time, r.report_date, r.status, u.username, b.title, b.barangay
     FROM reports r
     JOIN users u ON r.user_id = u.id
+    LEFT JOIN bns_reports b ON b.report_id = r.id
+    GROUP BY r.id
     ORDER BY r.report_date DESC, r.report_time DESC
     LIMIT :limit OFFSET :offset
 ");
@@ -25,13 +27,13 @@ $totalStmt = $pdo->query("SELECT COUNT(*) FROM reports");
 $totalReports = $totalStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>
+
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <title>CNO NutriMap — Reports</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; }
@@ -68,7 +70,6 @@ $totalPages = ceil($totalReports / $limit);
 </head>
 <body>
   <div class="layout">
-    <!-- Header -->
     <?php include 'header.php'; ?>
 
     <div class="body-layout">
@@ -104,6 +105,7 @@ $totalPages = ceil($totalReports / $limit);
               <tr>
                 <th>User</th>
                 <th>Title</th>
+                <th>Barangay</th>
                 <th>Time</th>
                 <th>Date</th>
                 <th>Status</th>
@@ -115,19 +117,20 @@ $totalPages = ceil($totalReports / $limit);
                 <?php foreach ($reports as $r): ?>
                   <tr>
                     <td><?= htmlspecialchars($r['username']) ?></td>
-                    <td><?= htmlspecialchars($r['title']) ?></td>
+                    <td><?= htmlspecialchars($r['title'] ?? '-') ?></td>
+                    <td><?= htmlspecialchars($r['barangay'] ?? '-') ?></td>
                     <td><?= date("h:i a", strtotime($r['report_time'])) ?></td>
                     <td><?= date("m/d/Y", strtotime($r['report_date'])) ?></td>
                     <td><span class="status <?= htmlspecialchars($r['status']) ?>"><?= htmlspecialchars($r['status']) ?></span></td>
                     <td class="actions">
-                      <button class="view"><i class="fa fa-eye"></i> View</button>
-                      <button class="edit"><i class="fa fa-edit"></i> Edit</button>
-                      <button class="delete"><i class="fa fa-trash"></i> Delete</button>
+                      <a href="view_report.php?id=<?= $r['id'] ?>" class="view"><i class="fa fa-eye"></i> View</a>
+                      <a href="edit_report.php?id=<?= $r['id'] ?>" class="edit"><i class="fa fa-edit"></i> Edit</a>
+                      <a href="delete_report.php?id=<?= $r['id'] ?>" class="delete" onclick="return confirm('Are you sure?')"><i class="fa fa-trash"></i> Delete</a>
                     </td>
                   </tr>
                 <?php endforeach; ?>
               <?php else: ?>
-                <tr><td colspan="6" style="text-align:center; color:#888;">No reports available</td></tr>
+                <tr><td colspan="7" style="text-align:center; color:#888;">No reports available</td></tr>
               <?php endif; ?>
             </tbody>
           </table>
