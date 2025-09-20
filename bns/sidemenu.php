@@ -1,7 +1,26 @@
 <?php
 // sidemenu.php
+session_start();
+require '../db/config.php';
+
+// ✅ Require login
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../auth/login.php");
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+
+// ✅ Fetch user info
+$stmt = $pdo->prepare("SELECT first_name, last_name, barangay FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$user_name = $user ? htmlspecialchars($user['first_name'] . " " . $user['last_name']) : "Guest";
+$user_barangay = $user ? htmlspecialchars($user['barangay']) : "";
 ?>
 <style>
+/* Your existing CSS (unchanged) */
 #sideMenu {
   position: fixed;
   top: 0;
@@ -19,153 +38,54 @@
   font-family: 'Segoe UI', Arial, sans-serif;
 }
 
-#sideMenu.open {
-  transform: translateX(0);
-}
+#sideMenu.open { transform: translateX(0); }
+.sideMenu-header { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; margin-bottom: 20px; }
+.sideMenu-header h2 { font-size: 22px; font-weight: 600; color: #009688; margin: 0; }
+.sideMenu-header .close-btn { font-size: 22px; cursor: pointer; color: #555; }
 
-.sideMenu-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  margin-bottom: 20px;
-}
-
-.sideMenu-header h2 {
-  font-size: 22px;
-  font-weight: 600;
-  color: #009688;
-  margin: 0;
-}
-
-.sideMenu-header .close-btn {
-  font-size: 22px;
-  cursor: pointer;
-  color: #555;
-}
-
-.menu-links {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
+.menu-links { list-style: none; padding: 0; margin: 0; }
 .menu-links li {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-  color: #333;
-  border-radius: 6px;
-  margin: 3px 10px;
-  position: relative;
+  display: flex; align-items: center;
+  padding: 12px 20px; font-size: 16px;
+  cursor: pointer; transition: background 0.2s, color 0.2s;
+  color: #333; border-radius: 6px; margin: 3px 10px;
 }
+.menu-links li:hover { background: #f0f0f0; color: #009688; }
+.menu-links i { margin-right: 12px; font-size: 18px; color: #666; }
 
-.menu-links li:hover {
-  background: #f0f0f0;
-  color: #009688;
-}
+.divider { height: 1px; background: #e0e0e0; margin: 20px 0; }
 
-.menu-links i {
-  margin-right: 12px;
-  font-size: 18px;
-  color: #666;
-}
-
-.divider {
-  height: 1px;
-  background: #e0e0e0;
-  margin: 20px 0;
-}
-
-.sideMenu-footer {
-  margin-top: auto;
-  padding: 0 20px 15px 20px;
-}
-
+.sideMenu-footer { margin-top: auto; padding: 0 20px 15px 20px; }
 .user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e0e0e0;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 10px; padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0; cursor: pointer;
 }
-
 .user-info img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
+  width: 40px; height: 40px;
+  border-radius: 50%; object-fit: cover;
 }
-
 .footer-links a {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  color: #555;
-  font-size: 15px;
-  padding: 8px 0;
-  transition: color 0.2s;
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none; color: #555; font-size: 15px;
+  padding: 8px 0; transition: color 0.2s;
 }
+.footer-links a:hover { color: #009688; }
 
-.footer-links a:hover {
-  color: #009688;
-}
+.settings-dropdown { flex-direction: column; align-items: stretch; }
+.settings-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.settings-btn i:last-child { margin-left: auto; transition: transform 0.2s ease; }
+.settings-btn.open i:last-child { transform: rotate(180deg); }
 
-/* Settings dropdown */
-.settings-dropdown {
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.settings-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.settings-btn i:last-child {
-  margin-left: auto;
-  transition: transform 0.2s ease;
-}
-
-.settings-btn.open i:last-child {
-  transform: rotate(180deg);
-}
-
-#settingsMenu {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: none;
-  flex-direction: column;
-}
-
+#settingsMenu { list-style: none; padding: 0; margin: 0; display: none; flex-direction: column; }
 #settingsMenu li {
-  padding: 10px 40px; /* indent to align like submenu */
-  cursor: pointer;
-  font-size: 15px;
-  color: #333;
-  display: flex;
-  align-items: center;
-  gap: 12px; /* spacing between icon and text */
+  padding: 10px 40px;
+  cursor: pointer; font-size: 15px; color: #333;
+  display: flex; align-items: center; gap: 12px;
   transition: background 0.2s, color 0.2s;
 }
-
-#settingsMenu li:hover {
-  background: #f5f5f5;
-  color: #009688;
-}
-
-#settingsMenu li i {
-  font-size: 16px;
-  color: #666;
-}
+#settingsMenu li:hover { background: #f5f5f5; color: #009688; }
+#settingsMenu li i { font-size: 16px; color: #666; }
 </style>
 
 <div id="sideMenu">
@@ -196,9 +116,9 @@
   <div class="divider"></div>
 
   <div class="sideMenu-footer">
-    <div class="user-info" id="userProfileBtn" style="cursor:pointer;">
-      <img src="https://via.placeholder.com/40" alt="User">
-      <span>Bean Root</span>
+    <div class="user-info" id="userProfileBtn">
+      <img src="../uploads/profile_placeholder.png" alt="User">
+      <span><?php echo $user_name; ?></span>
     </div>
     <div class="footer-links">
       <a href="../logout.php"><i class="fa fa-sign-out-alt"></i> Sign Out</a>
@@ -208,12 +128,10 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // User profile click
   const userProfileBtn = document.getElementById('userProfileBtn');
   if (userProfileBtn) {
     userProfileBtn.addEventListener('click', () => {
       window.location.href = 'profile.php';
-      closeSideMenu();
     });
   }
 
@@ -226,18 +144,5 @@ document.addEventListener('DOMContentLoaded', () => {
       settingsMenu.style.display = settingsMenu.style.display === 'flex' ? 'none' : 'flex';
     });
   }
-
-  // Settings sublinks click
-  const settingsItems = settingsMenu.querySelectorAll('li');
-  settingsItems.forEach(item => {
-    item.addEventListener('click', () => {
-      const url = item.getAttribute('data-url');
-      if (url) window.location.href = url;
-      closeSideMenu();
-    });
-  });
 });
 </script>
-
-
-

@@ -136,49 +136,52 @@ document.getElementById('menuBtn').addEventListener('click', async () => {
     const closeBtn = menu.querySelector('.close-btn');
     if (closeBtn) closeBtn.addEventListener('click', () => menu.classList.remove('open'));
 
-    // Menu items with data-url
+    // Menu links
     const menuItems = menu.querySelectorAll('.menu-links li[data-url]');
     menuItems.forEach(item => {
       item.addEventListener('click', () => {
         const url = item.getAttribute('data-url');
         if (url) window.location.href = url;
-        menu.classList.remove('open'); // close menu
+        menu.classList.remove('open');
       });
     });
 
-    // Footer links (logout etc.)
+    // Footer links
     const footerLinks = menu.querySelectorAll('.footer-links > a');
     footerLinks.forEach(link => {
       link.addEventListener('click', () => menu.classList.remove('open'));
     });
 
-    // ==============================
-    // Settings Dropdown Handling
-    // ==============================
+    // ✅ Profile click
+    const profileBtn = menu.querySelector('#userProfileBtn');
+    if (profileBtn) {
+      profileBtn.addEventListener('click', () => {
+        window.location.href = 'profile.php';
+        menu.classList.remove('open');
+      });
+    }
+
+    // Settings dropdown
     const settingsBtn = menu.querySelector('#settingsBtn');
     const settingsMenu = menu.querySelector('#settingsMenu');
-
     if (settingsBtn && settingsMenu) {
-      // Toggle dropdown
       settingsBtn.addEventListener('click', (e) => {
         e.preventDefault();
         settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
       });
 
-      // Close dropdown when clicking outside
       document.addEventListener('click', (e) => {
         if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) {
           settingsMenu.style.display = 'none';
         }
       });
 
-      // Submenu items (Archive, Security)
       const settingsItems = settingsMenu.querySelectorAll('li[data-url]');
       settingsItems.forEach(item => {
         item.addEventListener('click', () => {
           const url = item.getAttribute('data-url');
           if (url) window.location.href = url;
-          menu.classList.remove('open'); // also close side menu
+          menu.classList.remove('open');
         });
       });
     }
@@ -189,5 +192,6 @@ document.getElementById('menuBtn').addEventListener('click', async () => {
   if (menu) menu.classList.add('open');
 });
 </script>
+
 
 
