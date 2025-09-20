@@ -201,7 +201,7 @@
       <span>Bean Root</span>
     </div>
     <div class="footer-links">
-      <a href="logout.php"><i class="fa fa-sign-out-alt"></i> Sign Out</a>
+      <a href="../logout.php"><i class="fa fa-sign-out-alt"></i> Sign Out</a>
     </div>
   </div>
 </div>
