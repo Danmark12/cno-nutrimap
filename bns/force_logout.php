@@ -22,11 +22,11 @@ $login = $stmt->fetch(PDO::FETCH_ASSOC);
 if ($login) {
     $sessionId = $login['session_id'];
 
-    // ✅ Mark as logged out
-    $update = $pdo->prepare("UPDATE login_history SET logout_time = NOW() WHERE id = ?");
-    $update->execute([$login_id]);
+    // ✅ Delete this device entry completely (so it won't be trusted next login)
+    $delete = $pdo->prepare("DELETE FROM login_history WHERE id = ? AND user_id = ?");
+    $delete->execute([$login_id, $user_id]);
 
-    // ✅ Optionally, destroy session file (if using PHP file sessions)
+    // ✅ Destroy session file (if using PHP file-based sessions)
     if (file_exists(session_save_path() . "/sess_$sessionId")) {
         @unlink(session_save_path() . "/sess_$sessionId");
     }
