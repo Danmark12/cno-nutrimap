@@ -9,18 +9,80 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// ✅ Fetch login history for current user
-$stmt = $pdo->prepare("SELECT id, browser, ip_address, login_time, logout_time, session_id FROM login_history WHERE user_id = ? ORDER BY login_time DESC");
+// ✅ Fetch login history for current user (latest first)
+$stmt = $pdo->prepare("SELECT id, browser, ip_address, login_time, logout_time, session_id 
+                       FROM login_history 
+                       WHERE user_id = ? 
+                       ORDER BY login_time DESC");
 $stmt->execute([$user_id]);
-$logins = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$allLogins = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// ✅ Check if user already changed password
-$stmt = $pdo->prepare("SELECT password_changed, current_session FROM users WHERE id = ?");
+// ✅ Filter unique devices (latest only)
+$logins = [];
+$seenDevices = [];
+
+foreach ($allLogins as $login) {
+    $deviceKey = $login['browser'] . '|' . $login['ip_address'];
+    if (!isset($seenDevices[$deviceKey])) {
+        $logins[] = $login;
+        $seenDevices[$deviceKey] = true;
+    }
+}
+
+// ✅ Get user info
+$stmt = $pdo->prepare("SELECT password_changed, current_session, password_hash FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 $password_changed = $user['password_changed'] ?? 0;
 $current_session = $user['current_session'] ?? '';
+$current_password_hash = $user['password_hash'] ?? '';
+
+$password_message = '';
+$password_error = false;
+
+// ✅ Show change password card if form submitted
+$show_change_password = false;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'], $_POST['new_password'], $_POST['confirm_password'])) {
+    $show_change_password = true;
+    if ($password_changed) {
+        $password_message = "You have already changed your password. This action is allowed only once.";
+        $password_error = true;
+    } else {
+        $current_password = $_POST['current_password'];
+        $new_password = $_POST['new_password'];
+        $confirm_password = $_POST['confirm_password'];
+
+        if (!password_verify($current_password, $current_password_hash)) {
+            $password_message = "Current password is incorrect!";
+            $password_error = true;
+        } elseif ($new_password !== $confirm_password) {
+            $password_message = "New password and confirm password do not match!";
+            $password_error = true;
+        } elseif (
+            strlen($new_password) < 6 || 
+            !preg_match('/[0-9]/', $new_password) || 
+            !preg_match('/[A-Za-z]/', $new_password) || 
+            !preg_match('/[!@$%]/', $new_password)
+        ) {
+            $password_message = "Password must include letters, numbers, and special characters (!@$%).";
+            $password_error = true;
+        } else {
+            $new_hash = password_hash($new_password, PASSWORD_DEFAULT);
+            $updateStmt = $pdo->prepare("UPDATE users SET password_hash = ?, password_changed = 1 WHERE id = ?");
+            if ($updateStmt->execute([$new_hash, $user_id])) {
+                $password_changed = 1;
+                $password_message = "Password successfully changed!";
+                $password_error = false;
+            } else {
+                $password_message = "Failed to update password. Please try again.";
+                $password_error = true;
+            }
+        }
+    }
+}
 ?>
+
 
 <!doctype html>
 <html lang="en">
@@ -133,8 +195,18 @@ $current_session = $user['current_session'] ?? '';
     }
 
     .password-form .btn-submit:hover {
-      background: #0195a0ff;
+      background: #00AEEF;
       transform: translateY(-1px);
+    }
+
+    .password-message {
+      margin-top: 10px;
+      font-size: 14px;
+      color: green;
+    }
+
+    .password-message.error {
+      color: red;
     }
   </style>
 </head>
@@ -159,8 +231,7 @@ $current_session = $user['current_session'] ?? '';
 
           <?php if (count($logins) > 0): ?>
             <?php foreach ($logins as $login): 
-              // Simplify device/browser name
-              $deviceName = strtok($login['browser'], '/'); // take first part before slash
+              $deviceName = strtok($login['browser'], '/'); 
               $isCurrent = $login['session_id'] === $current_session;
             ?>
               <div class="device-btn" data-id="<?= $login['id'] ?>" data-current="<?= $isCurrent ? '1':'0' ?>" data-login="<?= htmlspecialchars($login['login_time']) ?>" data-ip="<?= htmlspecialchars($login['ip_address']) ?>">
@@ -173,18 +244,25 @@ $current_session = $user['current_session'] ?? '';
           <?php endif; ?>
         </div>
 
-        <!-- Change Password Card (Updated Design) -->
+        <!-- Change Password Card -->
         <div class="card" id="change-password">
           <h2>Change Password</h2>
           <p class="form-text">
-            You can change your password once. Your password must be at least 6 characters long 
-            and should include a combination of numbers, letters, and special characters (!@$%).
+            You can change your password once. Your password must be at least 6 characters and should include a combination of numbers, letters and special characters (!$@%)
           </p>
 
-          <?php if ($password_changed): ?>
-            <div class="alert error">You have already changed your password. This action is allowed only once.</div>
-          <?php else: ?>
-            <form method="post" action="change_password.php" class="password-form">
+          <form method="post" class="password-form">
+            <?php if ($password_changed): ?>
+              <div class="password-message error">You have already changed your password. This action is allowed only once.</div>
+            <?php endif; ?>
+            
+            <?php if ($password_message): ?>
+<div class="password-message <?= $password_error ? 'error' : '' ?>">
+    <?= htmlspecialchars($password_message) ?>
+</div>
+            <?php endif; ?>
+
+            <?php if (!$password_changed): ?>
               <div class="form-group">
                 <input type="password" name="current_password" placeholder="Enter your current password" required>
               </div>
@@ -195,8 +273,8 @@ $current_session = $user['current_session'] ?? '';
                 <input type="password" name="confirm_password" placeholder="Confirm new password" required>
               </div>
               <button type="submit" class="btn-submit">Change Password</button>
-            </form>
-          <?php endif; ?>
+            <?php endif; ?>
+          </form>
         </div>
       </div>
     </div>
@@ -213,47 +291,55 @@ $current_session = $user['current_session'] ?? '';
     </div>
   </div>
 
-  <script>
-    const modal = document.getElementById("logModal");
-    const logDate = document.getElementById("logDate");
-    const logIp = document.getElementById("logIp");
-    const logoutBtn = document.getElementById("logoutBtn");
-    let selectedId = null;
-    let isCurrentDevice = false;
+ <script>
+  const modal = document.getElementById("logModal");
+  const logDate = document.getElementById("logDate");
+  const logIp = document.getElementById("logIp");
+  const logoutBtn = document.getElementById("logoutBtn");
+  let selectedId = null;
+  let isCurrentDevice = false;
 
-    document.querySelectorAll(".device-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        selectedId = btn.dataset.id;
-        isCurrentDevice = btn.dataset.current === "1";
+  document.querySelectorAll(".device-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectedId = btn.dataset.id;
+      isCurrentDevice = btn.dataset.current === "1";
 
-        logDate.textContent = "Login Date: " + btn.dataset.login;
-        logIp.textContent = "IP Address: " + btn.dataset.ip;
+      logDate.textContent = "Login Date: " + btn.dataset.login;
+      logIp.textContent = "IP Address: " + btn.dataset.ip;
 
-        // Disable logout for current device
-        logoutBtn.style.display = isCurrentDevice ? "none" : "inline-block";
+      logoutBtn.style.display = isCurrentDevice ? "none" : "inline-block";
 
-        modal.style.display = "flex";
-      });
+      modal.style.display = "flex";
     });
+  });
 
-    function closeModal() { modal.style.display = "none"; }
+  function closeModal() { modal.style.display = "none"; }
 
-    logoutBtn.addEventListener("click", () => {
-      if(confirm("Are you sure you want to log out this device?")) {
-        window.location.href = "force_logout.php?id=" + selectedId;
-      }
+  logoutBtn.addEventListener("click", () => {
+    if(confirm("Are you sure you want to log out this device?")) {
+      window.location.href = "force_logout.php?id=" + selectedId;
+    }
+  });
+
+  // ✅ Switch between cards when clicking menu links
+  document.querySelectorAll('.menu-link').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+      link.classList.add('active');
+      document.getElementById(link.dataset.target).classList.add('active');
     });
+  });
 
-    // Sidebar switching
-    document.querySelectorAll('.menu-link').forEach(link => {
-      link.addEventListener('click', e => {
-        e.preventDefault();
-        document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
-        document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
-        link.classList.add('active');
-        document.getElementById(link.dataset.target).classList.add('active');
-      });
-    });
-  </script>
+  // ✅ Keep "Change Password" active after reload if set by PHP
+  <?php if (!empty($show_change_password) && $show_change_password): ?>
+    document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+    document.querySelector('[data-target="change-password"]').classList.add('active');
+    document.getElementById('change-password').classList.add('active');
+  <?php endif; ?>
+</script>
+
 </body>
 </html>
