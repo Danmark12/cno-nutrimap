@@ -10,15 +10,16 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // ✅ Fetch login history for current user
-$stmt = $pdo->prepare("SELECT browser, ip_address, login_time FROM login_history WHERE user_id = ? ORDER BY login_time DESC");
+$stmt = $pdo->prepare("SELECT id, browser, ip_address, login_time, logout_time, session_id FROM login_history WHERE user_id = ? ORDER BY login_time DESC");
 $stmt->execute([$user_id]);
 $logins = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // ✅ Check if user already changed password
-$stmt = $pdo->prepare("SELECT password_changed FROM users WHERE id = ?");
+$stmt = $pdo->prepare("SELECT password_changed, current_session FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 $password_changed = $user['password_changed'] ?? 0;
+$current_session = $user['current_session'] ?? '';
 ?>
 
 <!doctype html>
@@ -60,44 +61,81 @@ $password_changed = $user['password_changed'] ?? 0;
     .card.active { display:block; }
     .card h2 { margin:0 0 10px; font-size:18px; }
 
-    /* Login History */
-    .login-entry {
-      padding:10px 0; border-bottom:1px solid #eee;
-      display:flex; justify-content:space-between;
+    /* Login Buttons */
+    .device-btn {
+      display:flex; justify-content:space-between; align-items:center;
+      background:#f9f9f9; border:1px solid #ccc; border-radius:5px;
+      padding:12px 14px; margin-bottom:8px;
+      cursor:pointer; transition:background 0.2s;
     }
-    .login-entry:last-child { border-bottom:none; }
-    .browser-info { font-weight:bold; }
-    .time { font-size:13px; color:#777; }
-    .dots { cursor:pointer; }
+    .device-btn:hover { background:#eaeaea; }
+    .device-name { font-weight:bold; font-size:15px; }
+    .device-time { font-size:13px; color:#555; }
 
-    /* Change Password Form */
-    .form-text {
-      font-size: 14px;
-      color: #333;
-      margin-bottom: 15px;
-      line-height: 1.4;
+    /* Modal */
+    .modal {
+      display:none; position:fixed; top:0; left:0;
+      width:100%; height:100%;
+      background:rgba(0,0,0,0.5);
+      justify-content:center; align-items:center;
     }
-    .form-group { margin-bottom:12px; }
-    input[type="password"] {
-      width:100%; padding:10px;
-      border:1px solid #ccc; border-radius:4px;
+    .modal-content {
+      background:#fff; border-radius:8px;
+      width:350px; padding:20px; text-align:center;
+      box-shadow:0 4px 10px rgba(0,0,0,0.3);
     }
-    .btn-submit {
-      background:#009688; color:#fff;
-      border:none; padding:10px 15px;
+    .modal-content h3 { margin-bottom:10px; }
+    .modal-content p { margin:8px 0; font-size:14px; }
+    .modal-content button {
+      margin-top:12px;
+      background:#dc3545; color:#fff; border:none;
+      padding:8px 12px; border-radius:4px;
+      cursor:pointer;
+    }
+    .close-btn {
+      margin-top:10px; background:#6c757d;
+      color:#fff; padding:8px 12px; border:none;
       border-radius:4px; cursor:pointer;
-      display:block; width:100%;
     }
-    .btn-submit:disabled {
-      background:#ccc; cursor:not-allowed;
+
+    /* ===== Change Password Card Styling ===== */
+    .password-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-top: 10px;
     }
-    .btn-submit:hover:not(:disabled) { background:#00796b; }
-    .alert {
-      padding:10px; border-radius:4px;
-      margin-bottom:10px; font-size:14px;
+
+    .password-form .form-group input {
+      width: 100%;
+      padding: 12px 15px;
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      transition: all 0.2s;
+      outline: none;
     }
-    .alert.success { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
-    .alert.error { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+
+    .password-form .form-group input:focus {
+      border-color: #0195a0ff;
+      box-shadow: 0 0 5px rgba(0, 174, 239, 0.4);
+    }
+
+    .password-form .btn-submit {
+      padding: 12px;
+      background: #0195a0ff;
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .password-form .btn-submit:hover {
+      background: #0195a0ff;
+      transform: translateY(-1px);
+    }
   </style>
 </head>
 <body>
@@ -118,16 +156,16 @@ $password_changed = $user['password_changed'] ?? 0;
         <div class="card active" id="view-logins">
           <h2>View logins</h2>
           <p>These are the devices where your account is logged in.</p>
+
           <?php if (count($logins) > 0): ?>
-            <?php foreach ($logins as $login): ?>
-              <div class="login-entry">
-                <div>
-                  <div class="browser-info">
-                    <?= htmlspecialchars(parse_url($login['browser'], PHP_URL_HOST) ?: $login['browser']) ?>
-                  </div>
-                  <div class="time"><?= date('F j, Y, g:i a', strtotime($login['login_time'])) ?> — <?= htmlspecialchars($login['ip_address']) ?></div>
-                </div>
-                <div class="dots"><i class="fa-solid fa-ellipsis-vertical"></i></div>
+            <?php foreach ($logins as $login): 
+              // Simplify device/browser name
+              $deviceName = strtok($login['browser'], '/'); // take first part before slash
+              $isCurrent = $login['session_id'] === $current_session;
+            ?>
+              <div class="device-btn" data-id="<?= $login['id'] ?>" data-current="<?= $isCurrent ? '1':'0' ?>" data-login="<?= htmlspecialchars($login['login_time']) ?>" data-ip="<?= htmlspecialchars($login['ip_address']) ?>">
+                <span class="device-name"><?= htmlspecialchars($deviceName) ?><?= $isCurrent ? " (This device)" : "" ?></span>
+                <span class="device-time"><?= date('M j, g:i a', strtotime($login['login_time'])) ?></span>
               </div>
             <?php endforeach; ?>
           <?php else: ?>
@@ -135,7 +173,7 @@ $password_changed = $user['password_changed'] ?? 0;
           <?php endif; ?>
         </div>
 
-        <!-- Change Password Card -->
+        <!-- Change Password Card (Updated Design) -->
         <div class="card" id="change-password">
           <h2>Change Password</h2>
           <p class="form-text">
@@ -146,15 +184,15 @@ $password_changed = $user['password_changed'] ?? 0;
           <?php if ($password_changed): ?>
             <div class="alert error">You have already changed your password. This action is allowed only once.</div>
           <?php else: ?>
-            <form method="post" action="change_password.php">
+            <form method="post" action="change_password.php" class="password-form">
               <div class="form-group">
                 <input type="password" name="current_password" placeholder="Enter your current password" required>
               </div>
               <div class="form-group">
-                <input type="password" name="new_password" placeholder="New password" required>
+                <input type="password" name="new_password" placeholder="Enter new password" required>
               </div>
               <div class="form-group">
-                <input type="password" name="confirm_password" placeholder="Retype new password" required>
+                <input type="password" name="confirm_password" placeholder="Confirm new password" required>
               </div>
               <button type="submit" class="btn-submit">Change Password</button>
             </form>
@@ -164,13 +202,54 @@ $password_changed = $user['password_changed'] ?? 0;
     </div>
   </div>
 
+  <!-- Modal -->
+  <div class="modal" id="logModal">
+    <div class="modal-content">
+      <h3>Log Info</h3>
+      <p id="logDate"></p>
+      <p id="logIp"></p>
+      <button id="logoutBtn">Logout</button>
+      <button class="close-btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+
   <script>
+    const modal = document.getElementById("logModal");
+    const logDate = document.getElementById("logDate");
+    const logIp = document.getElementById("logIp");
+    const logoutBtn = document.getElementById("logoutBtn");
+    let selectedId = null;
+    let isCurrentDevice = false;
+
+    document.querySelectorAll(".device-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        selectedId = btn.dataset.id;
+        isCurrentDevice = btn.dataset.current === "1";
+
+        logDate.textContent = "Login Date: " + btn.dataset.login;
+        logIp.textContent = "IP Address: " + btn.dataset.ip;
+
+        // Disable logout for current device
+        logoutBtn.style.display = isCurrentDevice ? "none" : "inline-block";
+
+        modal.style.display = "flex";
+      });
+    });
+
+    function closeModal() { modal.style.display = "none"; }
+
+    logoutBtn.addEventListener("click", () => {
+      if(confirm("Are you sure you want to log out this device?")) {
+        window.location.href = "force_logout.php?id=" + selectedId;
+      }
+    });
+
+    // Sidebar switching
     document.querySelectorAll('.menu-link').forEach(link => {
       link.addEventListener('click', e => {
         e.preventDefault();
         document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
         document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
-
         link.classList.add('active');
         document.getElementById(link.dataset.target).classList.add('active');
       });

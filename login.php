@@ -27,12 +27,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 setcookie('remember_email', '', time() - 3600, "/"); // Clear if unchecked
             }
 
-            // ✅ Record login history (browser + IP)
+            // ✅ Record login history with session_id
+            $session_id = session_id(); // current PHP session
             $browser = $_SERVER['HTTP_USER_AGENT'];
             $ip = $_SERVER['REMOTE_ADDR'];
 
-            $historyStmt = $pdo->prepare("INSERT INTO login_history (user_id, browser, ip_address) VALUES (?, ?, ?)");
-            $historyStmt->execute([$user['id'], $browser, $ip]);
+            $historyStmt = $pdo->prepare("
+                INSERT INTO login_history (user_id, session_id, browser, ip_address)
+                VALUES (?, ?, ?, ?)
+            ");
+            $historyStmt->execute([$user['id'], $session_id, $browser, $ip]);
+
+            // ✅ Save current session in users table for reference
+            $pdo->prepare("UPDATE users SET current_session = ? WHERE id = ?")
+                ->execute([$session_id, $user['id']]);
 
             // ✅ Generate OTP
             $otp = rand(100000, 999999);
@@ -46,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['pending_user_type']  = $user['user_type'];
             $_SESSION['pending_first_name'] = $user['first_name'];
             $_SESSION['pending_user_email'] = $user['email']; 
-            $_SESSION['pending_barangay']   = $user['barangay']; // ✅ save barangay
+            $_SESSION['pending_barangay']   = $user['barangay'];
 
             if (sendOTP($user['email'], $otp)) {
                 $_SESSION['otp_message'] = "We sent a One-Time Password (OTP) to your email.";
@@ -54,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['otp_message'] = "Failed to send OTP email. Please contact admin.";
             }
 
+            // ✅ Redirect to OTP verification page
             header("Location: otp/verify_otp.php");
             exit;
         } else {
