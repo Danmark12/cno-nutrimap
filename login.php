@@ -6,11 +6,7 @@ require 'otp/mailer.php';
 $error = '';
 
 // ✅ If "Remember Me" cookies exist, auto-fill email
-if (isset($_COOKIE['remember_email'])) {
-    $rememberedEmail = $_COOKIE['remember_email'];
-} else {
-    $rememberedEmail = '';
-}
+$rememberedEmail = isset($_COOKIE['remember_email']) ? $_COOKIE['remember_email'] : '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
@@ -30,6 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 setcookie('remember_email', '', time() - 3600, "/"); // Clear if unchecked
             }
+
+            // ✅ Record login history (browser + IP)
+            $browser = $_SERVER['HTTP_USER_AGENT'];
+            $ip = $_SERVER['REMOTE_ADDR'];
+
+            $historyStmt = $pdo->prepare("INSERT INTO login_history (user_id, browser, ip_address) VALUES (?, ?, ?)");
+            $historyStmt->execute([$user['id'], $browser, $ip]);
 
             // ✅ Generate OTP
             $otp = rand(100000, 999999);
@@ -61,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 
 
 <!DOCTYPE html>
