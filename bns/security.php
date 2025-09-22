@@ -63,9 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'], $
             strlen($new_password) < 6 || 
             !preg_match('/[0-9]/', $new_password) || 
             !preg_match('/[A-Za-z]/', $new_password) || 
-            !preg_match('/[!@$%]/', $new_password)
+            !preg_match('/[.,!@$%]/', $new_password)
         ) {
-            $password_message = "Password must include letters, numbers, and special characters (!@$%).";
+            $password_message = "Password must include letters, numbers, and special characters (.,!@$%).";
             $password_error = true;
         } else {
             $new_hash = password_hash($new_password, PASSWORD_DEFAULT);

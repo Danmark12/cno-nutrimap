@@ -74,40 +74,22 @@ body{
   font-size:12px;
   line-height:1.4
 }
-/* Layout wrapper */
-.body-layout{
-  display:flex;
-  justify-content:center;
-  padding:20px 0;
-}
-.container{
-  max-width:1000px;
-  width:100%;
-  margin:0 auto;
-}
-/* Document like MS Word/Google Docs */
+.body-layout{display:flex;justify-content:center;padding:20px 0;}
+.container{max-width:1000px;width:100%;margin:0 auto;}
 .document{
   background:#fff;
-  width:21cm;          /* A4 width */
-  min-height:33cm;     /* Long bond paper height */
+  width:21cm;
+  min-height:33cm;
   margin:0 auto 30px auto;
-  padding:2.5cm;       /* page margins */
+  padding:2.5cm;
   box-shadow:0 0 8px rgba(0,0,0,0.15);
   position:relative;
   page-break-after:always;
 }
 @media print {
   body{background:#fff;}
-  .document{
-    box-shadow:none;
-    margin:0;
-    width:100%;
-    min-height:auto;
-    padding:2cm;
-    page-break-after:always;
-  }
+  .document{box-shadow:none;margin:0;width:100%;min-height:auto;padding:2cm;}
 }
-/* Header inside paper */
 .header-table{width:100%;border-collapse:collapse;margin-bottom:20px}
 .header-table td{border:none;padding:4px 6px;vertical-align:middle}
 .header-left{font-weight:bold;font-size:14px}
@@ -118,6 +100,26 @@ table{width:100%;border-collapse:collapse;margin-bottom:15px}
 th,td{border:1px solid #000;padding:6px 8px;text-align:left;font-size:12px;vertical-align:top}
 th{background:#ddd}
 .indent{padding-left:20px}
+
+/* ✅ FIX: thin center line stretches fully without gaps */
+.number-cell {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 0;
+  height: 100%;
+}
+.number-cell div {
+  padding: 6px 4px;
+  border-left: 1px solid #000; /* Same thin line as table borders */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+.number-cell div:first-child {
+  border-left: none;
+}
+
 .page-number{text-align:right;font-size:12px;color:#555;margin-top:10px}
 .notice{background:#fff3cd;padding:10px;border:1px solid #ffeeba;margin-bottom:15px}
 </style>
@@ -134,7 +136,6 @@ th{background:#ddd}
 </div>
 <?php endif; ?>
 
-<!-- PAGE 1 -->
 <div class="document">
 <table class="header-table">
 <tr>
@@ -149,14 +150,20 @@ th{background:#ddd}
 </table>
 
 <div class="report-info">
-    <H3>BARANGAY SITUATIONAL ANALYSIS (BSA)</H3>				
+    <h3>BARANGAY SITUATIONAL ANALYSIS (BSA)</h3>				
 <strong>Calendar Year:</strong> <?= $has_bns ? val($row,'year') : '—' ?> &nbsp;
 <strong>Barangay:</strong> <?= val($row,'barangay') ?> &nbsp;
 <strong>City:</strong> EL SALVADOR CITY &nbsp;
 <strong>Province:</strong> MISAMIS ORIENTAL
 </div>
+
 <table>
-<thead><tr><th>Indicator</th><th>Number / %</th></tr></thead>
+<thead>
+<tr>
+    <th>Indicator</th>
+    <th>Number / %</th>
+</tr>
+</thead>
 <tbody>
 <tr><td>1. Total Population</td><td><?= $has_bns ? val($row,'ind1','int') : '—' ?></td></tr>
 <tr><td>2. Number of households</td><td><?= $has_bns ? val($row,'ind2','int') : '—' ?></td></tr>
@@ -168,12 +175,19 @@ th{background:#ddd}
 <tr><td>6. Actual population of preschool children (0-59 months)</td><td><?= $has_bns ? val($row,'ind6','int') : '—' ?></td></tr>
 <tr><td>7a. % measured coverage (OPT Plus)</td><td><?= $has_bns ? val($row,'ind7a','dec2') : '—' ?></td></tr>
 <tr><td>7b. Preschool children by Nutritional Status</td><td></td></tr>
+
 <?php 
 $nutri = ['Severely underweight','Underweight','Normal weight','Severely wasted','Wasted','Overweight','Obese','Severely stunted','Stunted'];
 for ($i=1;$i<=9;$i++): ?>
-<tr class="indent"><td><?= $i.') '.$nutri[$i-1] ?></td>
-<td><?= $has_bns ? (val($row,"ind7b{$i}_no",'int').' / '.(isset($row["ind7b{$i}_pct"])?number_format((float)$row["ind7b{$i}_pct"],2).'%':'—')) : '—' ?></td></tr>
+<tr class="indent">
+  <td><?= $i.') '.$nutri[$i-1] ?></td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,"ind7b{$i}_no",'int') : '—' ?></div>
+    <div><?= $has_bns ? val($row,"ind7b{$i}_pct",'pct') : '—' ?></div>
+  </td>
+</tr>
 <?php endfor; ?>
+
 <tr><td>8. Infants 0-5 months old</td><td><?= $has_bns ? val($row,'ind8','int') : '—' ?></td></tr>
 <tr><td>9. Infants 6-11 months old</td><td><?= $has_bns ? val($row,'ind9','int') : '—' ?></td></tr>
 <tr><td>10. Preschool children 0-23 months old</td><td><?= $has_bns ? val($row,'ind10','int') : '—' ?></td></tr>
@@ -185,6 +199,7 @@ for ($i=1;$i<=9;$i++): ?>
 <tr><td>15b. Elementary Schools (Public/Private)</td><td><?= $has_bns ? (val($row,'ind15b_public','int').' / '.val($row,'ind15b_private','int')) : '—' ?></td></tr>
 </tbody>
 </table>
+
 <div class="page-number">Page 1</div>
 </div>
 
@@ -262,4 +277,3 @@ $i='a'; foreach($d as $label): ?>
 
 </body>
 </html>
-
