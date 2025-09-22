@@ -3,7 +3,7 @@ session_start();
 require '../db/config.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../auth/login.php");
+    header("Location: ../index.php");
     exit();
 }
 
@@ -22,15 +22,17 @@ $login = $stmt->fetch(PDO::FETCH_ASSOC);
 if ($login) {
     $sessionId = $login['session_id'];
 
-    // ✅ Delete this device entry completely (so it won't be trusted next login)
+    // ✅ Completely remove this device from login history
     $delete = $pdo->prepare("DELETE FROM login_history WHERE id = ? AND user_id = ?");
     $delete->execute([$login_id, $user_id]);
 
-    // ✅ Destroy session file (if using PHP file-based sessions)
-    if (file_exists(session_save_path() . "/sess_$sessionId")) {
-        @unlink(session_save_path() . "/sess_$sessionId");
+    // ✅ Destroy session file ONLY for that device/session
+    $sessionFile = session_save_path() . "/sess_" . $sessionId;
+    if (file_exists($sessionFile)) {
+        @unlink($sessionFile);
     }
 }
 
+// ✅ Go back to security page
 header("Location: security.php");
-exit();
+exit;
