@@ -96,25 +96,28 @@ body{
 .header-logos{text-align:right}
 .header-logos img{height:60px;margin-left:6px}
 .report-info{text-align:center;margin-bottom:20px;font-size:12px}
-table{width:100%;border-collapse:collapse;margin-bottom:15px}
+table{width:100%;border-collapse:collapse;margin-bottom:15px;table-layout:fixed}
 th,td{border:1px solid #000;padding:6px 8px;text-align:left;font-size:12px;vertical-align:top}
 th{background:#ddd}
 .indent{padding-left:20px}
 
-/* ✅ FIX: thin center line stretches fully without gaps */
+/* ✅ FIX: second column uniform size */
+table td:nth-child(2),
+table th:nth-child(2) {
+  width: 180px; /* adjust width as needed */
+  text-align: center;
+}
+
+/* ✅ Number-cell layout */
 .number-cell {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding: 0;
-  height: 100%;
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
 }
 .number-cell div {
-  padding: 6px 4px;
-  border-left: 1px solid #000; /* Same thin line as table borders */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+  flex: 1;
+  padding: 4px;
+  border-left: 1px solid #000;
 }
 .number-cell div:first-child {
   border-left: none;
@@ -173,9 +176,16 @@ th{background:#ddd}
 <tr class="indent"><td>b. Lactating</td><td><?= $has_bns ? val($row,'ind4b','int') : '—' ?></td></tr>
 <tr><td>5. Households with preschool children (0-59 months)</td><td><?= $has_bns ? val($row,'ind5','int') : '—' ?></td></tr>
 <tr><td>6. Actual population of preschool children (0-59 months)</td><td><?= $has_bns ? val($row,'ind6','int') : '—' ?></td></tr>
-<tr><td>7a. % measured coverage (OPT Plus)</td><td><?= $has_bns ? val($row,'ind7a','dec2') : '—' ?></td></tr>
-<tr><td>7b. Preschool children by Nutritional Status</td><td></td></tr>
-
+<tr><td>7. Total number of preschool children 0-50 months old measured during OPT Plus</td><td></td></tr>
+<tr><td>a. Percent (%) measured coverage (OPT Plus)</td><td><?= $has_bns ? val($row,'ind7a','dec2') : '—' ?></td></tr>
+<tr>
+  <td>b. Preschool children by Nutritional Status</td>
+  <td class="number-cell">
+    <div>No.</div>
+    <div>%</div>
+  </td>
+</tr>
+</tr>
 <?php 
 $nutri = ['Severely underweight','Underweight','Normal weight','Severely wasted','Wasted','Overweight','Obese','Severely stunted','Stunted'];
 for ($i=1;$i<=9;$i++): ?>
@@ -195,9 +205,28 @@ for ($i=1;$i<=9;$i++): ?>
 <tr><td>12. Preschool children 24-59 months old</td><td><?= $has_bns ? val($row,'ind12','int') : '—' ?></td></tr>
 <tr><td>13. Families with wasted/severely wasted preschool children</td><td><?= $has_bns ? val($row,'ind13','int') : '—' ?></td></tr>
 <tr><td>14. Families with stunted/severely stunted preschool children</td><td><?= $has_bns ? val($row,'ind14','int') : '—' ?></td></tr>
-<tr><td>15a. Day Care Centers (Public/Private)</td><td><?= $has_bns ? (val($row,'ind15a_public','int').' / '.val($row,'ind15a_private','int')) : '—' ?></td></tr>
-<tr><td>15b. Elementary Schools (Public/Private)</td><td><?= $has_bns ? (val($row,'ind15b_public','int').' / '.val($row,'ind15b_private','int')) : '—' ?></td></tr>
-</tbody>
+<tr>
+  <td>15. Total number of Educational Institution</td>
+  <td class="number-cell">
+    <div>Public</div>
+    <div>Private</div>
+  </td>
+</tr>
+<tr>
+  <td>a. Day Care Centers (Public/Private)</td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,'ind15a_public','int') : '—' ?></div>
+    <div><?= $has_bns ? val($row,'ind15a_private','int') : '—' ?></div>
+  </td>
+</tr>
+<tr>
+  <td>b. Elementary Schools (Public/Private)</td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,'ind15b_public','int') : '—' ?></div>
+    <div><?= $has_bns ? val($row,'ind15b_private','int') : '—' ?></div>
+  </td>
+</tr>
+
 </table>
 
 <div class="page-number">Page 1</div>
@@ -211,40 +240,125 @@ for ($i=1;$i<=9;$i++): ?>
 <tr><td>17. School children (Grades 1-6)</td><td><?= $has_bns ? val($row,'ind17','int') : '—' ?></td></tr>
 <tr><td>18. School children weighed (K-Gr. 6)</td><td><?= $has_bns ? val($row,'ind18','int') : '—' ?></td></tr>
 <tr><td>19. % coverage measured</td><td><?= $has_bns ? (isset($row['ind19'])?number_format((float)$row['ind19'],2).'%':'—') : '—' ?></td></tr>
-<tr><td>20. School children by Nutritional Status</td><td></td></tr>
-<tr class="indent"><td>a. Severely Wasted</td><td><?= $has_bns ? (val($row,'ind20a_no','int').' / '.(isset($row['ind20a_pct'])?number_format((float)$row['ind20a_pct'],2).'%':'—')) : '—' ?></td></tr>
-<tr class="indent"><td>b. Wasted</td><td><?= $has_bns ? (val($row,'ind20b_no','int').' / '.(isset($row['ind20b_pct'])?number_format((float)$row['ind20b_pct'],2).'%':'—')) : '—' ?></td></tr>
-<tr class="indent"><td>c. Normal</td><td><?= $has_bns ? (val($row,'ind20c_no','int').' / '.(isset($row['ind20c_pct'])?number_format((float)$row['ind20c_pct'],2).'%':'—')) : '—' ?></td></tr>
-<tr class="indent"><td>d. Overweight</td><td><?= $has_bns ? (val($row,'ind20d_no','int').' / '.(isset($row['ind20d_pct'])?number_format((float)$row['ind20d_pct'],2).'%':'—')) : '—' ?></td></tr>
-<tr class="indent"><td>e. Obese</td><td><?= $has_bns ? (val($row,'ind20e_no','int').' / '.(isset($row['ind20e_pct'])?number_format((float)$row['ind20e_pct'],2).'%':'—')) : '—' ?></td></tr>
+<tr>
+  <td>20. School children by Nutritional Status</td>
+  <td class="number-cell">
+    <div>No.</div>
+    <div>%</div>
+  </td>
+</tr>
+</tr>
+<tr class="indent">
+  <td>a. Severely Wasted</td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,'ind20a_no','int') : '—' ?></div>
+    <div><?= $has_bns ? (isset($row['ind20a_pct']) ? number_format((float)$row['ind20a_pct'],2).'%' : '—') : '—' ?></div>
+  </td>
+</tr>
+<tr class="indent">
+  <td>b. Wasted</td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,'ind20b_no','int') : '—' ?></div>
+    <div><?= $has_bns ? (isset($row['ind20b_pct']) ? number_format((float)$row['ind20b_pct'],2).'%' : '—') : '—' ?></div>
+  </td>
+</tr>
+<tr class="indent">
+  <td>c. Normal</td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,'ind20c_no','int') : '—' ?></div>
+    <div><?= $has_bns ? (isset($row['ind20c_pct']) ? number_format((float)$row['ind20c_pct'],2).'%' : '—') : '—' ?></div>
+  </td>
+</tr>
+<tr class="indent">
+  <td>d. Overweight</td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,'ind20d_no','int') : '—' ?></div>
+    <div><?= $has_bns ? (isset($row['ind20d_pct']) ? number_format((float)$row['ind20d_pct'],2).'%' : '—') : '—' ?></div>
+  </td>
+</tr>
+<tr class="indent">
+  <td>e. Obese</td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,'ind20e_no','int') : '—' ?></div>
+    <div><?= $has_bns ? (isset($row['ind20e_pct']) ? number_format((float)$row['ind20e_pct'],2).'%' : '—') : '—' ?></div>
+  </td>
+</tr>
 <tr><td>21. Exclusively breastfed 0-5 months</td><td><?= $has_bns ? val($row,'ind21','int') : '—' ?></td></tr>
 <tr><td>22. Complementary foods at 6 months</td><td><?= $has_bns ? val($row,'ind22','int') : '—' ?></td></tr>
 <tr><td>23. Households with wasted school children</td><td><?= $has_bns ? val($row,'ind23','int') : '—' ?></td></tr>
 <tr><td>24. School children dewormed</td><td><?= $has_bns ? val($row,'ind24','int') : '—' ?></td></tr>
 <tr><td>25. Fully immunized children</td><td><?= $has_bns ? val($row,'ind25','int') : '—' ?></td></tr>
-<tr><td>26. Toilet facility by type</td><td></td></tr>
+<tr>
+  <td>26. Toilet facility by type</td>
+  <td class="number-cell">
+    <div>No.</div>
+    <div>%</div>
+  </td>
+</tr>
 <?php for($i='a';$i<='d';$i++): ?>
-<tr class="indent"><td><?= strtoupper($i) ?>. <?= ['Water-sealed','Antipolo','Open Pit/Shared','No Toilet'][ord($i)-97] ?></td>
-<td><?= $has_bns ? (val($row,"ind26{$i}_no",'int').' / '.(isset($row["ind26{$i}_pct"])?number_format((float)$row["ind26{$i}_pct"],2).'%':'—')) : '—' ?></td></tr>
+<tr class="indent">
+  <td><?= strtoupper($i) ?>. <?= ['Water-sealed','Antipolo','Open Pit/Shared','No Toilet'][ord($i)-97] ?></td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,"ind26{$i}_no",'int') : '—' ?></div>
+    <div><?= $has_bns ? (isset($row["ind26{$i}_pct"]) ? number_format((float)$row["ind26{$i}_pct"],2).'%' : '—') : '—' ?></div>
+  </td>
+</tr>
 <?php endfor; ?>
-<tr><td>27. Garbage disposal by type</td><td></td></tr>
-<?php $g=['Barangay/City garbage','Own compost pit','Burning','Dumping']; 
+
+<tr>
+  <td>27. Garbage disposal by type:</td>
+  <td class="number-cell">
+    <div>No.</div>
+    <div>%</div>
+  </td>
+</tr>
+<?php $g=['a. Barangay/City garbage','b. Own compost pit','c. Burning','d. Dumping']; 
 $i='a'; foreach($g as $label): ?>
-<tr class="indent"><td><?= $label ?></td>
-<td><?= $has_bns ? (val($row,"ind27{$i}_no",'int').' / '.(isset($row["ind27{$i}_pct"])?number_format((float)$row["ind27{$i}_pct"],2).'%':'—')) : '—' ?></td></tr>
+<tr class="indent">
+  <td><?= $label ?></td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,"ind27{$i}_no",'int') : '—' ?></div>
+    <div><?= $has_bns ? (isset($row["ind27{$i}_pct"]) ? number_format((float)$row["ind27{$i}_pct"],2).'%' : '—') : '—' ?></div>
+  </td>
+</tr>
 <?php $i++; endforeach; ?>
-<tr><td>28. Water source by type</td><td></td></tr>
-<?php $w=['Pipe water system','Well – Level II','Deep well (Level II)','Mineral water','Open shallow dug well'];
+
+<tr>
+  <td>28. Water source by type:</td>
+  <td class="number-cell">
+    <div>No.</div>
+    <div>%</div>
+  </td>
+</tr>
+<?php $w=['a. Pipe water system','b. Well – Level II','c. Deep well (Level II)','d. Mineral water','e. Open shallow dug well'];
 $i='a'; foreach($w as $label): ?>
-<tr class="indent"><td><?= $label ?></td>
-<td><?= $has_bns ? (val($row,"ind28{$i}_no",'int').' / '.(isset($row["ind28{$i}_pct"])?number_format((float)$row["ind28{$i}_pct"],2).'%':'—')) : '—' ?></td></tr>
+<tr class="indent">
+  <td><?= $label ?></td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,"ind28{$i}_no",'int') : '—' ?></div>
+    <div><?= $has_bns ? (isset($row["ind28{$i}_pct"]) ? number_format((float)$row["ind28{$i}_pct"],2).'%' : '—') : '—' ?></div>
+  </td>
+</tr>
 <?php $i++; endforeach; ?>
-<tr><td>29. Households with...</td><td></td></tr>
-<?php $h=['Vegetable garden','Livestock/poultry','Combination garden & livestock','Fishponds','No garden'];
+
+<tr>
+  <td>29. Households with:</td>
+  <td class="number-cell">
+    <div>No.</div>
+    <div>%</div>
+  </td>
+</tr>
+<?php $h=['a. Vegetable garden','b. Livestock/poultry','c. Combination garden & livestock','d. Fishponds','e. No garden'];
 $i='a'; foreach($h as $label): ?>
-<tr class="indent"><td><?= $label ?></td>
-<td><?= $has_bns ? (val($row,"ind29{$i}_no",'int').' / '.(isset($row["ind29{$i}_pct"])?number_format((float)$row["ind29{$i}_pct"],2).'%':'—')) : '—' ?></td></tr>
+<tr class="indent">
+  <td><?= $label ?></td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,"ind29{$i}_no",'int') : '—' ?></div>
+    <div><?= $has_bns ? (isset($row["ind29{$i}_pct"]) ? number_format((float)$row["ind29{$i}_pct"],2).'%' : '—') : '—' ?></div>
+  </td>
+</tr>
 <?php $i++; endforeach; ?>
+
 </tbody>
 </table>
 <div class="page-number">Page 2</div>
@@ -253,27 +367,71 @@ $i='a'; foreach($h as $label): ?>
 <!-- PAGE 3 -->
 <div class="document">
 <table>
+<thead>
+<tr>
+  <th>Indicator</th>
+  <th>Number / %</th>
+</tr>
+</thead>
 <tbody>
-<tr><td>30. Type of dwelling unit</td><td></td></tr>
-<?php $d=['Concrete','Semi concrete','Wooden house','Nipa bamboo house','Barong-barong']; 
-$i='a'; foreach($d as $label): ?>
-<tr class="indent"><td><?= $label ?></td>
-<td><?= $has_bns ? (val($row,"ind30{$i}_no",'int').' / '.(isset($row["ind30{$i}_pct"])?number_format((float)$row["ind30{$i}_pct"],2).'%':'—')) : '—' ?></td></tr>
+<tr>
+  <td>30. Type of dwelling unit</td>
+  <td class="number-cell">
+    <div>No.</div>
+    <div>%</div>
+  </td>
+</tr>
+<?php 
+$d=['a. Concrete','b. Semi concrete','c. Wooden house','d. Nipa bamboo house','e. Barong-barong']; 
+$i='a'; 
+foreach($d as $label): ?>
+<tr class="indent">
+  <td><?= $label ?></td>
+  <td class="number-cell">
+    <div><?= $has_bns ? val($row,"ind30{$i}_no",'int') : '—' ?></div>
+    <div><?= $has_bns ? (isset($row["ind30{$i}_pct"]) ? number_format((float)$row["ind30{$i}_pct"],2).'%' : '—') : '—' ?></div>
+  </td>
+</tr>
 <?php $i++; endforeach; ?>
-<tr><td>31. Households using iodized salt</td><td><?= $has_bns ? val($row,'ind31','int') : '—' ?></td></tr>
-<tr><td>32. Total number of eateries/carinderia</td><td><?= $has_bns ? val($row,'ind32','int') : '—' ?></td></tr>
-<tr><td>33. Total number of bakeries</td><td><?= $has_bns ? val($row,'ind33','int') : '—' ?></td></tr>
-<tr><td>34. Total number of sari-sari stores</td><td><?= $has_bns ? val($row,'ind34','int') : '—' ?></td></tr>
-<tr><td>35. Number of health and nutrition workers</td><td></td></tr>
-<tr class="indent"><td>a. Barangay Nutrition Scholar</td>
-    <td><?= $has_bns ? val($row,'ind35a','int') : '—' ?></td></tr>
-<tr class="indent"><td>b. Barangay Health Worker</td>
-    <td><?= $has_bns ? val($row,'ind35b','int') : '—' ?></td></tr>
 
-<!-- Continue with Indicator 36 -->
-<tr><td>36.  Total number of households beneficiaries of Pantawid Pamilyang Pilipino</td>
-    <td><?= $has_bns ? val($row,'ind36','int') : '—' ?></td></tr>
+<tr>
+  <td>31. Households using iodized salt</td>
+  <td><?= $has_bns ? val($row,'ind31','int') : '—' ?></td>
+</tr>
+<tr>
+  <td>32. Total number of eateries/carinderia</td>
+  <td><?= $has_bns ? val($row,'ind32','int') : '—' ?></td>
+</tr>
+<tr>
+  <td>33. Total number of bakeries</td>
+  <td><?= $has_bns ? val($row,'ind33','int') : '—' ?></td>
+</tr>
+<tr>
+  <td>34. Total number of sari-sari stores</td>
+  <td><?= $has_bns ? val($row,'ind34','int') : '—' ?></td>
+</tr>
+<tr>
+  <td>35. Number of health and nutrition workers</td>
+  <td></td>
+</tr>
+<tr class="indent">
+  <td>a. Barangay Nutrition Scholar</td>
+  <td><?= $has_bns ? val($row,'ind35a','int') : '—' ?></td>
+</tr>
+<tr class="indent">
+  <td>b. Barangay Health Worker</td>
+  <td><?= $has_bns ? val($row,'ind35b','int') : '—' ?></td>
+</tr>
+<tr>
+  <td>36. Total number of households beneficiaries of Pantawid Pamilyang Pilipino</td>
+  <td><?= $has_bns ? val($row,'ind36','int') : '—' ?></td>
+</tr>
+</tbody>
+</table>
+
+<div class="page-number">Page 3</div>
 </div>
+
 
 </body>
 </html>
