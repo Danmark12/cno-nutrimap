@@ -2,18 +2,35 @@
 session_start();
 require '../db/config.php'; 
 
-// --- Pagination setup ---
-$limit = 10; // reports per page
+// Enable PDO exceptions for debugging
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+// ✅ Handle archive action
+if (isset($_GET['archive_id']) && is_numeric($_GET['archive_id'])) {
+    $reportId = (int)$_GET['archive_id'];
+
+    // 🔹 Update status to 'Archived' instead of deleting
+    $stmt = $pdo->prepare("UPDATE reports SET status = 'Archived' WHERE id = ?");
+    $stmt->execute([$reportId]);
+
+    header("Location: reports.php");
+    exit();
+}
+
+// --- Pagination for active reports ---
+$limit = 10; 
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
-// --- Fetch all reports with user info and barangay ---
 $stmt = $pdo->prepare("
-    SELECT r.id, r.report_time, r.report_date, r.status, u.username, b.title, b.barangay
+    SELECT r.id, r.report_time, r.report_date, r.status,
+           u.username,
+           b.title AS report_title,
+           b.barangay
     FROM reports r
     JOIN users u ON r.user_id = u.id
     LEFT JOIN bns_reports b ON b.report_id = r.id
-    GROUP BY r.id
+    WHERE TRIM(LOWER(r.status)) != 'archived'
     ORDER BY r.report_date DESC, r.report_time DESC
     LIMIT :limit OFFSET :offset
 ");
@@ -22,8 +39,7 @@ $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// --- Count total reports ---
-$totalStmt = $pdo->query("SELECT COUNT(*) FROM reports");
+$totalStmt = $pdo->query("SELECT COUNT(*) FROM reports WHERE TRIM(LOWER(status)) != 'archived'");
 $totalReports = $totalStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>
@@ -47,14 +63,12 @@ $totalPages = ceil($totalReports / $limit);
     .toolbar-right select { padding:6px; border:1px solid #ccc; border-radius:4px; }
     .add-btn { background:#009688; color:#fff; text-decoration:none; padding:8px 14px; border-radius:4px; font-size:14px; display:flex; align-items:center; gap:6px; }
     .add-btn:hover { background:#00796b; }
-
     .report-panel { background:#fff; border:1px solid #ccc; border-radius:4px; flex:1; display:flex; flex-direction:column; }
     .report-header { display:flex; justify-content:space-between; align-items:center; padding:10px; background:#eee; border-bottom:1px solid #ccc; }
     .report-header h3 { margin:0; }
     .pagination { display:flex; align-items:center; gap:6px; }
     .pagination a { border:1px solid #ccc; background:#fff; padding:5px 10px; cursor:pointer; border-radius:4px; font-size:14px; text-decoration:none; color:#333; }
     .pagination a.active { background:#009688; color:#fff; border:none; }
-
     table { width:100%; border-collapse:collapse; font-size:14px; }
     th, td { text-align:left; padding:10px; border-bottom:1px solid #eee; }
     th { background:#f5f5f5; font-weight:bold; }
@@ -62,10 +76,14 @@ $totalPages = ceil($totalReports / $limit);
     .status.Pending { background:#ffc107; color:#000; }
     .status.Approved { background:#28a745; }
     .status.Rejected { background:#dc3545; }
-    .actions button { border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:4px; color:#fff; }
+    .status.Archived { background:#6c757d; }
+    .actions a { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:20px; font-size:13px; font-weight:500; text-decoration:none; color:#fff; transition:all 0.3s ease; }
     .actions .view { background:#007bff; }
+    .actions .view:hover { background:#0056b3; }
     .actions .edit { background:#28a745; }
+    .actions .edit:hover { background:#1e7e34; }
     .actions .delete { background:#dc3545; }
+    .actions .delete:hover { background:#a71d2a; }
   </style>
 </head>
 <body>
@@ -117,7 +135,7 @@ $totalPages = ceil($totalReports / $limit);
                 <?php foreach ($reports as $r): ?>
                   <tr>
                     <td><?= htmlspecialchars($r['username']) ?></td>
-                    <td><?= htmlspecialchars($r['title'] ?? '-') ?></td>
+                    <td><?= htmlspecialchars($r['report_title'] ?? '-') ?></td>
                     <td><?= htmlspecialchars($r['barangay'] ?? '-') ?></td>
                     <td><?= date("h:i a", strtotime($r['report_time'])) ?></td>
                     <td><?= date("m/d/Y", strtotime($r['report_date'])) ?></td>
@@ -125,7 +143,7 @@ $totalPages = ceil($totalReports / $limit);
                     <td class="actions">
                       <a href="view_report.php?id=<?= $r['id'] ?>" class="view"><i class="fa fa-eye"></i> View</a>
                       <a href="edit_report.php?id=<?= $r['id'] ?>" class="edit"><i class="fa fa-edit"></i> Edit</a>
-                      <a href="delete_report.php?id=<?= $r['id'] ?>" class="delete" onclick="return confirm('Are you sure?')"><i class="fa fa-trash"></i> Delete</a>
+                      <a href="reports.php?archive_id=<?= $r['id'] ?>" class="delete" onclick="return confirm('Are you sure you want to move this report to Archive?')"><i class="fa fa-archive"></i> Archive</a>
                     </td>
                   </tr>
                 <?php endforeach; ?>
