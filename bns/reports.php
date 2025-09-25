@@ -5,13 +5,21 @@ require '../db/config.php';
 // Enable PDO exceptions for debugging
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// ✅ Ensure user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../auth/login.php");
+    exit();
+}
+
+$userId = $_SESSION['user_id'];
+
 // ✅ Handle archive action
 if (isset($_GET['archive_id']) && is_numeric($_GET['archive_id'])) {
     $reportId = (int)$_GET['archive_id'];
 
-    // 🔹 Update status to 'Archived' instead of deleting
-    $stmt = $pdo->prepare("UPDATE reports SET status = 'Archived' WHERE id = ?");
-    $stmt->execute([$reportId]);
+    // 🔹 Update status to 'Archived' but only if the report belongs to this user
+    $stmt = $pdo->prepare("UPDATE reports SET status = 'Archived' WHERE id = ? AND user_id = ?");
+    $stmt->execute([$reportId, $userId]);
 
     header("Location: reports.php");
     exit();
@@ -22,6 +30,7 @@ $limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
+// ✅ Fetch ONLY this user's active reports
 $stmt = $pdo->prepare("
     SELECT r.id, r.report_time, r.report_date, r.status,
            u.username,
@@ -31,15 +40,19 @@ $stmt = $pdo->prepare("
     JOIN users u ON r.user_id = u.id
     LEFT JOIN bns_reports b ON b.report_id = r.id
     WHERE TRIM(LOWER(r.status)) != 'archived'
+      AND r.user_id = :user_id
     ORDER BY r.report_date DESC, r.report_time DESC
     LIMIT :limit OFFSET :offset
 ");
+$stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$totalStmt = $pdo->query("SELECT COUNT(*) FROM reports WHERE TRIM(LOWER(status)) != 'archived'");
+// ✅ Count total reports for this user
+$totalStmt = $pdo->prepare("SELECT COUNT(*) FROM reports WHERE TRIM(LOWER(status)) != 'archived' AND user_id = ?");
+$totalStmt->execute([$userId]);
 $totalReports = $totalStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>

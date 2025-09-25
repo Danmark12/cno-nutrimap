@@ -2,27 +2,37 @@
 session_start();
 require '../db/config.php'; 
 
+// ✅ Require login
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../auth/login.php");
+    exit();
+}
+
+$userId = $_SESSION['user_id'];
+
 // --- Pagination setup ---
 $limit = 10; // reports per page
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
-// --- Fetch approved reports from reports table ---
+// --- Fetch approved reports for this user only ---
 $stmt = $pdo->prepare("
     SELECT r.*, u.username 
     FROM reports r
     JOIN users u ON r.user_id = u.id
-    WHERE r.status = 'Approved'
+    WHERE r.status = 'Approved' AND r.user_id = :uid
     ORDER BY r.report_date DESC, r.report_time DESC
     LIMIT :limit OFFSET :offset
 ");
+$stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// --- Count total approved reports ---
-$totalStmt = $pdo->query("SELECT COUNT(*) FROM reports WHERE status = 'Approved'");
+// --- Count total approved reports for this user ---
+$totalStmt = $pdo->prepare("SELECT COUNT(*) FROM reports WHERE status = 'Approved' AND user_id = :uid");
+$totalStmt->execute(['uid' => $userId]);
 $totalReports = $totalStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>

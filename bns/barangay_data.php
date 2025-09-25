@@ -9,15 +9,18 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// --- Fetch approved reports ---
+$userId = $_SESSION['user_id'];
+
+// --- Fetch approved reports for this user only ---
 $stmt = $pdo->prepare("
     SELECT r.id, r.report_date, b.title
     FROM reports r
     JOIN bns_reports b ON b.report_id = r.id
     WHERE r.status = 'Approved'
+      AND r.user_id = :user_id
     ORDER BY r.report_date DESC
 ");
-$stmt->execute();
+$stmt->execute([':user_id' => $userId]);
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!doctype html>

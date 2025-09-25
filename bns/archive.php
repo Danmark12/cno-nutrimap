@@ -2,19 +2,27 @@
 session_start();
 require '../db/config.php';
 
+// ✅ Require login
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../auth/login.php");
+    exit();
+}
+
+$userId = $_SESSION['user_id'];
+
 // ✅ Handle optional messages
 $message = $_GET['msg'] ?? '';
 
-// ✅ Fetch archived reports from reports table
+// ✅ Fetch archived reports for the logged-in user only
 $stmt = $pdo->prepare("
     SELECT r.*, u.username, b.title, b.barangay
     FROM reports r
     JOIN users u ON r.user_id = u.id
     LEFT JOIN bns_reports b ON b.report_id = r.id
-    WHERE r.status = 'Archived'
+    WHERE r.status = 'Archived' AND r.user_id = :uid
     ORDER BY r.report_date DESC, r.report_time DESC
 ");
-$stmt->execute();
+$stmt->execute(['uid' => $userId]);
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
