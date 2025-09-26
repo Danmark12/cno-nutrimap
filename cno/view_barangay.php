@@ -1,72 +1,74 @@
-  <?php
-  // view_report.php
-  session_start();
-  require '../db/config.php'; // PDO connection
+<?php
+session_start();
+require '../db/config.php'; // ✅ PDO connection
 
-  $report_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-  if ($report_id <= 0) {
-      die("Report not found!");
-  }
+// --- Get report ID ---
+$report_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if ($report_id <= 0) {
+    die("Report not found!");
+}
 
-  $stmt = $pdo->prepare("
-      SELECT r.id AS reports_id, r.report_date, r.report_time, r.status,
-            b.*
-      FROM reports r
-      LEFT JOIN bns_reports b ON b.report_id = r.id
-      WHERE r.id = :id
-      LIMIT 1
-  ");
-  $stmt->execute(['id' => $report_id]);
-  $row = $stmt->fetch(PDO::FETCH_ASSOC);
+// --- Fetch approved report with its BNS data ---
+$stmt = $pdo->prepare("
+    SELECT r.id AS reports_id, r.status, r.report_date, r.report_time,
+           b.barangay, b.year, b.title, b.*
+    FROM reports r
+    JOIN bns_reports b ON b.report_id = r.id
+    WHERE r.id = :id AND r.status = 'Approved'
+    LIMIT 1
+");
+$stmt->execute(['id' => $report_id]);
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-  if (!$row) {
-      die("Report not found!");
-  }
+if (!$row) {
+    die("No approved BNS report found for this barangay.");
+}
 
-  $has_bns = !is_null($row['report_id']);
+$has_bns = true; // ✅ We only display when BNS data exists
 
-  function getBarangayLogo($barangay) {
-      $logos = [
-          'CNO' => 'CNO.png',
-          'Amoros' => 'Amoros.png',
-          'Bolisong' => 'Bolisong.png',
-          'Cogon' => 'Cogon.png',
-          'Himaya' => 'Himaya.png',
-          'Hinigdaan' => 'Hinigdaan.png',
-          'Kalabaylabay' => 'Kalabaylabay.png',
-          'Molugan' => 'Molugan.png',
-          'Pedro S. Baculio' => 'Pedro sa Baculio.png',
-          'Pedro sa Baculio' => 'Pedro sa Baculio.png',
-          'Poblacion' => 'Poblacion.png',
-          'Quibonbon' => 'Quibonbon.png',
-          'Sambulawan' => 'Sambulawan.png',
-          'San Francisco de Asis' => 'San Francisco de Asis.png',
-          'Sinaloc' => 'Sinaloc.png',
-          'Taytay' => 'Taytay.png',
-          'Ulaliman' => 'Ulaliman.png'
-      ];
-      return isset($logos[$barangay]) ? $logos[$barangay] : 'default.png';
-  }
+// --- Barangay Logo mapping ---
+function getBarangayLogo($barangay) {
+    $logos = [
+        'CNO' => 'CNO.png',
+        'Amoros' => 'Amoros.png',
+        'Bolisong' => 'Bolisong.png',
+        'Cogon' => 'Cogon.png',
+        'Himaya' => 'Himaya.png',
+        'Hinigdaan' => 'Hinigdaan.png',
+        'Kalabaylabay' => 'Kalabaylabay.png',
+        'Molugan' => 'Molugan.png',
+        'Pedro S. Baculio' => 'Pedro sa Baculio.png',
+        'Poblacion' => 'Poblacion.png',
+        'Quibonbon' => 'Quibonbon.png',
+        'Sambulawan' => 'Sambulawan.png',
+        'San Francisco de Asis' => 'San Francisco de Asis.png',
+        'Sinaloc' => 'Sinaloc.png',
+        'Taytay' => 'Taytay.png',
+        'Ulaliman' => 'Ulaliman.png'
+    ];
+    return $logos[$barangay] ?? 'default.png';
+}
 
-  function val($arr, $k, $fmt = null) {
-      if (!isset($arr[$k]) || $arr[$k] === null || $arr[$k] === '') return '—';
-      $v = $arr[$k];
-      if ($fmt === 'int') return (int)$v;
-      if ($fmt === 'pct') return number_format((float)$v, 2) . '%';
-      if ($fmt === 'dec2') return number_format((float)$v, 2);
-      return htmlspecialchars($v);
-  }
+// --- Value formatter ---
+function val($arr, $k, $fmt = null) {
+    if (!isset($arr[$k]) || $arr[$k] === null || $arr[$k] === '') return '—';
+    $v = $arr[$k];
+    if ($fmt === 'int') return (int)$v;
+    if ($fmt === 'pct') return number_format((float)$v, 2) . '%';
+    if ($fmt === 'dec2') return number_format((float)$v, 2);
+    return htmlspecialchars($v);
+}
 
-  $barangay_logo = getBarangayLogo($row['barangay'] ?? '');
-  ?>
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-  <meta charset="UTF-8">
-  <title>View BNS Report — CNO NutriMap</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
+$barangay_logo = getBarangayLogo($row['barangay']);
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>View BNS Report — CNO NutriMap</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+ <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{
     background:#f0f0f0;
@@ -93,8 +95,17 @@
   .header-table{width:100%;border-collapse:collapse;margin-bottom:20px}
   .header-table td{border:none;padding:4px 6px;vertical-align:middle}
   .header-left{font-weight:bold;font-size:14px}
-  .header-logos{text-align:right}
-  .header-logos img{height:60px;margin-left:6px}
+
+.header-logos {
+  display: flex;
+   justify-content: flex-start; /* push logos to the right */
+  align-items: center;
+  gap: 10px; /* space between logos */
+}
+
+.header-logos img {
+  height: 75px;
+}
   .report-info{text-align:center;margin-bottom:20px;font-size:12px}
   table{width:100%;border-collapse:collapse;margin-bottom:15px;table-layout:fixed}
   th,td{border:1px solid #000;padding:6px 8px;text-align:left;font-size:12px;vertical-align:top}
@@ -126,40 +137,41 @@
   .page-number{text-align:right;font-size:12px;color:#555;margin-top:10px}
   .notice{background:#fff3cd;padding:10px;border:1px solid #ffeeba;margin-bottom:15px}
   </style>
-  </head>
-  <body>
-  <div class="layout">
-  <?php include 'header.php'; ?>
-  <div class="body-layout">
-  <div class="container">
+</head>
+<body>
+<div class="layout">
+<?php include 'header.php'; ?>
+<div class="body-layout">
+<div class="container">
 
-  <?php if (!$has_bns): ?>
-  <div class="notice">
-  <strong>Note:</strong> Report exists (ID: <?= htmlspecialchars($row['reports_id']) ?>) but no BNS data was found.
-  </div>
-  <?php endif; ?>
+<?php if (!$has_bns): ?>
+<div class="notice">
+<strong>Note:</strong> Report exists (ID: <?= htmlspecialchars($row['reports_id']) ?>) but no BNS data was found.
+</div>
+<?php endif; ?>
 
-  <div class="document">
+<!-- ✅ PAGE 1 -->
+<div class="document">
   <table class="header-table">
-  <tr>
-  <td class="header-left">BNS Form No. IC<br>Barangay Nutrition Profile</td>
-  <td class="header-logos">
-  <img src="../logos/barangays/<?= htmlspecialchars($barangay_logo) ?>" alt="Barangay Logo">
-  <img src="../logos/fixed/Seal_of_El_Salvador__Misamis_Oriental-removebg-preview.png">
-  <img src="../logos/fixed/National_Nutrition_Council__NNC_.svg-removebg-preview.png">
-  <img src="../logos/fixed/Bagong-Pilipinas-logo.png">
-  </td>
-  </tr>
+    <tr>
+      <td class="header-left">BNS Form No. IC<br>Barangay Nutrition Profile</td>
+      <td class="header-logos">
+        <img src="../logos/barangays/<?= htmlspecialchars($barangay_logo) ?>" alt="Barangay Logo">
+        <img src="../logos/fixed/Seal_of_El_Salvador__Misamis_Oriental-removebg-preview.png">
+        <img src="../logos/fixed/National_Nutrition_Council__NNC_.svg-removebg-preview.png">
+        <img src="../logos/fixed/Bagong-Pilipinas-logo.png">
+      </td>
+    </tr>
   </table>
 
   <div class="report-info">
       <h3>BARANGAY SITUATIONAL ANALYSIS (BSA)</h3>				
-  <strong>Calendar Year:</strong> <?= $has_bns ? val($row,'year') : '—' ?> &nbsp;
-  <strong>Barangay:</strong> <?= val($row,'barangay') ?> &nbsp;
-  <strong>City:</strong> EL SALVADOR CITY &nbsp;
-  <strong>Province:</strong> MISAMIS ORIENTAL
+      <strong>Calendar Year:</strong> <?= $has_bns ? val($row,'year') : '—' ?> &nbsp;
+      <strong>Barangay:</strong> <?= val($row,'barangay') ?> &nbsp;
+      <strong>City:</strong> EL SALVADOR CITY &nbsp;
+      <strong>Province:</strong> MISAMIS ORIENTAL
   </div>
-
+  
   <table>
   <thead>
   <tr>

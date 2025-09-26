@@ -2,27 +2,51 @@
 session_start();
 require '../db/config.php'; 
 
+// ✅ Require login
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../auth/login.php");
+    exit();
+}
+
+$userId = $_SESSION['user_id'];
+
 // --- Pagination setup ---
 $limit = 10; // reports per page
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
-// --- Fetch approved reports from reports table ---
+// --- Handle archive action ---
+if (isset($_GET['archive_id']) && is_numeric($_GET['archive_id'])) {
+    $reportId = (int)$_GET['archive_id'];
+
+    // Save current status to prev_status before archiving
+    $stmt = $pdo->prepare("UPDATE reports SET prev_status = status, status = 'Archived' WHERE id = ? AND user_id = ?");
+    $stmt->execute([$reportId, $userId]);
+
+    // Reload same page
+    header("Location: ".$_SERVER['PHP_SELF']."?page=".$page);
+    exit();
+}
+
+// --- Fetch approved reports for this user only ---
 $stmt = $pdo->prepare("
-    SELECT r.*, u.username 
+    SELECT r.*, u.username, b.title 
     FROM reports r
     JOIN users u ON r.user_id = u.id
-    WHERE r.status = 'Approved'
+    LEFT JOIN bns_reports b ON b.report_id = r.id
+    WHERE r.status = 'Approved' AND r.user_id = :uid
     ORDER BY r.report_date DESC, r.report_time DESC
     LIMIT :limit OFFSET :offset
 ");
+$stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// --- Count total approved reports ---
-$totalStmt = $pdo->query("SELECT COUNT(*) FROM reports WHERE status = 'Approved'");
+// --- Count total approved reports for this user ---
+$totalStmt = $pdo->prepare("SELECT COUNT(*) FROM reports WHERE status = 'Approved' AND user_id = :uid");
+$totalStmt->execute(['uid' => $userId]);
 $totalReports = $totalStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>
@@ -30,7 +54,7 @@ $totalPages = ceil($totalReports / $limit);
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>CNO NutriMap — Approved Reports</title>
+  <title>CNO NutriMap — My Approved Reports</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -61,7 +85,7 @@ $totalPages = ceil($totalReports / $limit);
       padding:10px; background:#eee; border-bottom:1px solid #ccc;
     }
     .report-header h3 { margin:0; }
-    .pagination { display:flex; align-items:center; gap:6px; }
+    .pagination { display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
     .pagination a {
       border:1px solid #ccc; background:#fff; padding:5px 10px;
       cursor:pointer; border-radius:4px; font-size:14px; text-decoration:none; color:#333;
@@ -72,12 +96,13 @@ $totalPages = ceil($totalReports / $limit);
     th, td { text-align:left; padding:10px; border-bottom:1px solid #eee; }
     th { background:#f5f5f5; font-weight:bold; }
     .status { padding:3px 8px; border-radius:10px; font-size:12px; color:#fff; background:#009688; }
-    .actions button {
-      border:none; padding:5px 10px; border-radius:4px;
-      cursor:pointer; font-size:12px; margin-right:4px; color:#fff;
+    .actions a {
+      display:inline-block; text-decoration:none; padding:5px 10px; border-radius:4px;
+      font-size:12px; margin-right:4px; color:#fff;
     }
     .actions .view { background:#007bff; }
-    .actions .delete { background:#dc3545; }
+    .actions .edit { background:#ffc107; color:#000; }
+    .actions .archive { background:#6c757d; }
   </style>
 </head>
 <body>
@@ -103,17 +128,13 @@ $totalPages = ceil($totalReports / $limit);
 
         <div class="report-panel">
           <div class="report-header">
-            <h3>Report History</h3>
+            <h3>My Approved Report History</h3>
             <div class="pagination">
-              <?php if ($page > 1): ?>
-                <a href="?page=<?= $page-1 ?>">Prev</a>
-              <?php endif; ?>
+              <a href="?page=<?= max(1,$page-1) ?>">Prev</a>
               <?php for ($i=1; $i <= $totalPages; $i++): ?>
                 <a href="?page=<?= $i ?>" class="<?= $i==$page ? 'active':'' ?>"><?= $i ?></a>
               <?php endfor; ?>
-              <?php if ($page < $totalPages): ?>
-                <a href="?page=<?= $page+1 ?>">Next</a>
-              <?php endif; ?>
+              <a href="?page=<?= min($totalPages,$page+1) ?>">Next</a>
             </div>
           </div>
 
@@ -138,8 +159,9 @@ $totalPages = ceil($totalReports / $limit);
                     <td><?= date("m/d/Y", strtotime($r['report_date'])) ?></td>
                     <td><span class="status"><?= htmlspecialchars($r['status']) ?></span></td>
                     <td class="actions">
-                      <button class="view"><i class="fa fa-eye"></i> View</button>
-                      <button class="delete"><i class="fa fa-trash"></i> Delete</button>
+                      <a href="view_report.php?id=<?= $r['id'] ?>" class="view"><i class="fa fa-eye"></i> View</a>
+                      <a href="report/edit_approved.php?id=<?= $r['id'] ?>" class="edit"><i class="fa fa-pen"></i> Edit</a>
+                      <a href="?archive_id=<?= $r['id'] ?>" class="archive" onclick="return confirm('Archive this approved report?');"><i class="fa fa-archive"></i> Archive</a>
                     </td>
                   </tr>
                 <?php endforeach; ?>

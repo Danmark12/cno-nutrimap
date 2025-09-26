@@ -195,7 +195,6 @@
 
           <!-- Full Indicators Form -->
           <div class="form-section">
-            <h3>Indicators</h3>
             <table>
               <tr><th>Indicator</th><th>Number</th></tr>
 

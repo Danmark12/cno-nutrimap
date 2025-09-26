@@ -94,9 +94,9 @@ $user_barangay = $user ? htmlspecialchars($user['barangay']) : "";
   <ul class="menu-links">
     <li data-url="home.php"><i class="fa fa-home"></i> Home</li>
     <li data-url="reports.php"><i class="fa fa-file-alt"></i> Reports</li>
-    <li data-url="health_data.php"><i class="fa fa-heartbeat"></i> Health and Nutrition Data</li>
+        <li data-url="barangay_data.php"><i class="fa fa-history"></i> Barangay Data</li>
+    <li data-url="consolidated.php"><i class="fa fa-heartbeat"></i> Consolidated Data</li>
     <li data-url="nutritional_map.php"><i class="fa fa-map-marked-alt"></i> Nutritional Map</li>
-    <li data-url="data_history.php"><i class="fa fa-history"></i> Data History</li>
     <li data-url="users.php"><i class="fa fa-users"></i> Users</li>
     <li data-url="logs.php"><i class="fa fa-clipboard-list"></i> Logs</li>
 
