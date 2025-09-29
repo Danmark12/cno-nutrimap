@@ -1,106 +1,117 @@
-  <?php
-  session_start();
-  require '../db/config.php';
+<?php
+session_start();
+require '../db/config.php';
 
-  // ✅ Require login
-  if (!isset($_SESSION['user_id'])) {
-      header("Location: ../auth/login.php");
-      exit();
-  }
+// ✅ Require login
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../auth/login.php");
+    exit();
+}
 
-  $barangay = $_SESSION['barangay']; // auto-fill from session
-  $year = date('Y'); // default year
-  $user_id = $_SESSION['user_id'];
+$barangay = $_SESSION['barangay']; // auto-fill from session
+$year = date('Y'); // default year
+$user_id = $_SESSION['user_id'];
 
-  if ($_SERVER["REQUEST_METHOD"] === "POST") {
-      $title = trim($_POST['title']); // report title from form
-      $year = $_POST['year'] ?? $year; // optional year from form
-      $barangay = $_POST['barangay'] ?? $barangay;
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $title = trim($_POST['title']); // report title from form
+    $year = $_POST['year'] ?? $year; // optional year from form
+    $barangay = $_POST['barangay'] ?? $barangay;
 
-          if ($title === '') {
+    if ($title === '') {
         die("Error: Title cannot be empty!");
     }
-      try {
-          // Start transaction to ensure both inserts succeed
-          $pdo->beginTransaction();
 
-          // 1️⃣ Insert into reports table
-          $stmt = $pdo->prepare("
-              INSERT INTO reports (user_id, report_time, report_date)
-              VALUES (:user_id, :report_time, :report_date)
-          ");
-          $stmt->execute([
-              ':user_id' => $user_id,
-              ':report_time' => date('H:i:s'),
-              ':report_date' => date('Y-m-d')
-          ]);
-          // Get the inserted report ID
-          $report_id = $pdo->lastInsertId();
+    try {
+        // Start transaction to ensure both inserts succeed
+        $pdo->beginTransaction();
 
-          // 2️⃣ Prepare data for bns_reports
-          $fields = [
-              'report_id', 'barangay', 'year', 'title',
-              'ind1','ind2','ind3','ind4a','ind4b','ind5','ind6','ind7a',
-              'ind7b1_no','ind7b1_pct','ind7b2_no','ind7b2_pct','ind7b3_no','ind7b3_pct',
-              'ind7b4_no','ind7b4_pct','ind7b5_no','ind7b5_pct','ind7b6_no','ind7b6_pct',
-              'ind7b7_no','ind7b7_pct','ind7b8_no','ind7b8_pct','ind7b9_no','ind7b9_pct',
-              'ind8','ind9','ind10','ind11','ind12','ind13','ind14',
-              'ind15a_public','ind15a_private','ind15b_public','ind15b_private',
-              'ind16','ind17','ind18','ind19',
-              'ind20a_no','ind20a_pct','ind20b_no','ind20b_pct','ind20c_no','ind20c_pct',
-              'ind20d_no','ind20d_pct','ind20e_no','ind20e_pct',
-              'ind21','ind22','ind23','ind24','ind25',
-              'ind26a_no','ind26a_pct','ind26b_no','ind26b_pct','ind26c_no','ind26c_pct','ind26d_no','ind26d_pct',
-              'ind27a_no','ind27a_pct','ind27b_no','ind27b_pct','ind27c_no','ind27c_pct','ind27d_no','ind27d_pct',
-              'ind28a_no','ind28a_pct','ind28b_no','ind28b_pct','ind28c_no','ind28c_pct','ind28d_no','ind28d_pct','ind28e_no','ind28e_pct',
-              'ind29a_no','ind29a_pct','ind29b_no','ind29b_pct','ind29c_no','ind29c_pct','ind29d_no','ind29d_pct','ind29e_no','ind29e_pct',
-              'ind30a_no','ind30a_pct','ind30b_no','ind30b_pct','ind30c_no','ind30c_pct','ind30d_no','ind30d_pct','ind30e_no','ind30e_pct',
-              'ind31','ind32','ind33','ind34',
-              'ind35a','ind35b',
-              'ind36'
-          ];
+        // 1️⃣ Insert into reports table
+        $stmt = $pdo->prepare("
+            INSERT INTO reports (user_id, report_time, report_date)
+            VALUES (:user_id, :report_time, :report_date)
+        ");
+        $stmt->execute([
+            ':user_id' => $user_id,
+            ':report_time' => date('H:i:s'),
+            ':report_date' => date('Y-m-d')
+        ]);
+        // Get the inserted report ID
+        $report_id = $pdo->lastInsertId();
 
-          $placeholders = [];
-          $params = [];
+        // 2️⃣ Prepare data for bns_reports
+        $fields = [
+            'report_id', 'barangay', 'year', 'title',
+            'ind1','ind2','ind3','ind4a','ind4b','ind5','ind6','ind7a',
+            'ind7b1_no','ind7b1_pct','ind7b2_no','ind7b2_pct','ind7b3_no','ind7b3_pct',
+            'ind7b4_no','ind7b4_pct','ind7b5_no','ind7b5_pct','ind7b6_no','ind7b6_pct',
+            'ind7b7_no','ind7b7_pct','ind7b8_no','ind7b8_pct','ind7b9_no','ind7b9_pct',
+            'ind8','ind9','ind10','ind11','ind12','ind13','ind14',
+            'ind15a_public','ind15a_private','ind15b_public','ind15b_private',
+            'ind16','ind17','ind18','ind19',
+            'ind20a_no','ind20a_pct','ind20b_no','ind20b_pct','ind20c_no','ind20c_pct',
+            'ind20d_no','ind20d_pct','ind20e_no','ind20e_pct',
+            'ind21','ind22','ind23','ind24','ind25',
+            'ind26a_no','ind26a_pct','ind26b_no','ind26b_pct','ind26c_no','ind26c_pct','ind26d_no','ind26d_pct',
+            'ind27a_no','ind27a_pct','ind27b_no','ind27b_pct','ind27c_no','ind27c_pct','ind27d_no','ind27d_pct',
+            'ind28a_no','ind28a_pct','ind28b_no','ind28b_pct','ind28c_no','ind28c_pct','ind28d_no','ind28d_pct','ind28e_no','ind28e_pct',
+            'ind29a_no','ind29a_pct','ind29b_no','ind29b_pct','ind29c_no','ind29c_pct','ind29d_no','ind29d_pct','ind29e_no','ind29e_pct',
+            'ind30a_no','ind30a_pct','ind30b_no','ind30b_pct','ind30c_no','ind30c_pct','ind30d_no','ind30d_pct','ind30e_no','ind30e_pct',
+            'ind31','ind32','ind33','ind34',
+            'ind35a','ind35b',
+            'ind36'
+        ];
 
-          foreach ($fields as $f) {
-              $placeholders[] = ':' . $f;
+        $placeholders = [];
+        $params = [];
 
-              // report_id is from $report_id, others from POST
-              if ($f === 'report_id') {
-                  $params[':' . $f] = $report_id;
-} elseif ($f === 'barangay') {
-    $params[':' . $f] = $barangay;
-} elseif ($f === 'year') {
-    $params[':' . $f] = $year;
-} elseif ($f === 'title') {
-    $params[':' . $f] = $title;
+        foreach ($fields as $f) {
+            $placeholders[] = ':' . $f;
+
+            // report_id is from $report_id, others from POST
+            if ($f === 'report_id') {
+                $params[':' . $f] = $report_id;
+            } elseif ($f === 'barangay') {
+                $params[':' . $f] = $barangay;
+            } elseif ($f === 'year') {
+                $params[':' . $f] = $year;
+            } elseif ($f === 'title') {
+                $params[':' . $f] = $title;
+            } else {
+                $params[':' . $f] = $_POST[$f] ?? null;
+            }
+        }
+
+        // Prepare and execute insert
+        $sql = "INSERT INTO bns_reports (" . implode(',', $fields) . ") 
+                VALUES (" . implode(',', $placeholders) . ")";
+        $stmt2 = $pdo->prepare($sql);
+        $stmt2->execute($params);
+
+        // 3️⃣ Log activity
+        $logStmt = $pdo->prepare("
+            INSERT INTO activity_logs (user_id, action, details, created_at)
+            VALUES (:user_id, :action, :details, NOW())
+        ");
+        $logStmt->execute([
+            ':user_id' => $user_id,
+            ':action' => 'Report Added',
+            ':details' => "Report ID $report_id created for Barangay $barangay, Year $year with title '$title'"
+        ]);
+
+        // Commit transaction
+        $pdo->commit();
+
+        // ✅ Redirect with success message
+        $_SESSION['success'] = "Report and barangay data submitted successfully.";
+        header("Location: home.php");
+        exit();
+
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        die("Error: " . $e->getMessage());
+    }
 }
- else {
-                  $params[':' . $f] = $_POST[$f] ?? null;
-              }
-          }
-
-          // Prepare and execute insert
-          $sql = "INSERT INTO bns_reports (" . implode(',', $fields) . ") 
-                  VALUES (" . implode(',', $placeholders) . ")";
-          $stmt2 = $pdo->prepare($sql);
-          $stmt2->execute($params);
-
-          // Commit transaction
-          $pdo->commit();
-
-          // ✅ Redirect with success message
-          $_SESSION['success'] = "Report and barangay data submitted successfully.";
-          header("Location: home.php");
-          exit();
-
-      } catch (PDOException $e) {
-          $pdo->rollBack();
-          die("Error: " . $e->getMessage());
-      }
-  }
-  ?>
+?>
 
 
   <!DOCTYPE html>

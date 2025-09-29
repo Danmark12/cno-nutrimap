@@ -15,6 +15,12 @@ if (!is_numeric($reportId) || $reportId <= 0) {
 
 $userId = $_SESSION['user_id'];
 
+// ✅ Activity log function
+function logActivity($pdo, $user_id, $action, $details = null) {
+    $stmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action, details) VALUES (?, ?, ?)");
+    $stmt->execute([$user_id, $action, $details]);
+}
+
 try {
     $pdo->beginTransaction();
 
@@ -31,7 +37,10 @@ try {
     if (!$oldBns) throw new Exception("BNS data not found");
 
     // 2️⃣ Create new pending report
-    $stmt = $pdo->prepare("INSERT INTO reports (user_id, report_time, report_date, status) VALUES (:user_id, :report_time, :report_date, 'Pending')");
+    $stmt = $pdo->prepare("
+        INSERT INTO reports (user_id, report_time, report_date, status) 
+        VALUES (:user_id, :report_time, :report_date, 'Pending')
+    ");
     $stmt->execute([
         'user_id' => $userId,
         'report_time' => date('H:i:s'),
@@ -61,6 +70,14 @@ try {
     $stmt->execute($bnsFields);
 
     $pdo->commit();
+
+    // ✅ Log activity
+    logActivity(
+        $pdo,
+        $userId,
+        "Updated report (cloned as Pending)",
+        "Old Report ID: $reportId → New Report ID: $newReportId"
+    );
 
     header("Location: ../reports.php?id=$newReportId&msg=Report updated as Pending");
     exit();

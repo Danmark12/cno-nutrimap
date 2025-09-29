@@ -13,6 +13,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['rep
             ':status' => $action,
             ':id' => $reportId
         ]);
+
+        // ✅ Log activity
+        if (isset($_SESSION['user_id'])) {
+            $userId = $_SESSION['user_id'];
+            $logStmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action, created_at) VALUES (?, ?, NOW())");
+            $logStmt->execute([$userId, "$action report ID: $reportId"]);
+        }
+
     } elseif ($action === 'View') {
         header("Location: view_report.php?id=" . $reportId);
         exit;
@@ -105,6 +113,7 @@ $countStmt->execute();
 $totalReports = $countStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>
+
 <!doctype html>
 <html lang="en">
 <head>

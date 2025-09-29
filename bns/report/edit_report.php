@@ -8,6 +8,12 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// ✅ Activity log function
+function logActivity($pdo, $user_id, $action) {
+    $stmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
+    $stmt->execute([$user_id, $action]);
+}
+
 // ✅ Validate report ID
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     die("Invalid report ID.");
@@ -35,7 +41,50 @@ $has_bns = !empty($row['id']);
 
 // ✅ Allow editing only if status is Pending or Rejected
 $can_edit = in_array($row['status'], ['Pending', 'Rejected']);
+
+// ✅ BARANGAY LOGO FUNCTION
+function getBarangayLogo($barangay) {
+    $map = [
+        'cno' => 'CNO.png',
+        'amoros' => 'Amoros.png',
+        'bolisong' => 'Bolisong.png',
+        'cogon' => 'Cogon.png',
+        'himaya' => 'Himaya.png',
+        'hinigdaan' => 'Hinigdaan.png',
+        'kalabaylabay' => 'Kalabaylabay.png',
+        'molugan' => 'Molugan.png',
+        'pedro s. baculio' => 'Pedro_sa_Baculio.png',
+        'pedro sa baculio' => 'Pedro_sa_Baculio.png',
+        'poblacion' => 'Poblacion.png',
+        'quibonbon' => 'Quibonbon.png',
+        'sambulawan' => 'Sambulawan.png',
+        'san francisco de asis' => 'San_Francisco_de_Asis.png',
+        'sinaloc' => 'Sinaloc.png',
+        'taytay' => 'Taytay.png',
+        'ulaliman' => 'Ulaliman.png'
+    ];
+
+    $key = strtolower(trim($barangay ?? ''));
+    return $map[$key] ?? 'default.png';
+}
+
+// ✅ Determine barangay logo
+$barangay_name = $has_bns ? $row['barangay'] : '';
+$barangay_logo = getBarangayLogo($barangay_name);
+
+// ✅ Log activity (viewing/editing report)
+if (isset($_SESSION['user_id'])) {
+    $reportTitle = $row['title'] ?? "Untitled Report";
+    $status = $row['status'] ?? "Unknown";
+    logActivity(
+        $pdo, 
+        $_SESSION['user_id'], 
+        "Accessed report (ID: $reportId, Title: $reportTitle, Status: $status)"
+    );
+}
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -127,7 +176,7 @@ You cannot edit this report because its status is <?= htmlspecialchars($row['sta
         <tr>
             <td class="header-left">BNS Form No. IC<br>Barangay Nutrition Profile</td>
             <td class="header-logos">
-                <img src="../../logos/barangays/<?= htmlspecialchars($barangay_logo) ?>" alt="Barangay Logo">
+                <img src="../../logos/barangays/<?= urlencode($barangay_logo) ?>" alt="Barangay Logo">
                 <img src="../../logos/fixed/Seal_of_El_Salvador__Misamis_Oriental-removebg-preview.png">
                 <img src="../../logos/fixed/National_Nutrition_Council__NNC_.svg-removebg-preview.png">
                 <img src="../../logos/fixed/Bagong-Pilipinas-logo.png">

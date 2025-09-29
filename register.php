@@ -32,6 +32,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt->execute([$first_name, $last_name, $username, $email, $phone_number, $address, $barangay, $user_type, $hash]);
             $message = "✅ Account created successfully!";
+
+            // ✅ Log activity
+            if (isset($_SESSION['user_id'])) {
+                $creator_id = $_SESSION['user_id']; // the one creating the account
+                $logStmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action, created_at) VALUES (?, ?, NOW())");
+                $logStmt->execute([
+                    $creator_id,
+                    "Created new account: {$first_name} {$last_name} ({$username}) - Role: {$user_type}, Barangay: {$barangay}"
+                ]);
+            }
+
         } catch (PDOException $e) {
             if ($e->errorInfo[1] == 1062) { // duplicate entry
                 $message = "⚠️ Username or Email already exists!";
@@ -42,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

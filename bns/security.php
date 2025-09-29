@@ -74,6 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'], $
                 $password_changed = 1;
                 $password_message = "Password successfully changed!";
                 $password_error = false;
+
+                // 🔹 Log activity for password change
+                $logStmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action, created_at) VALUES (?, ?, NOW())");
+                $logStmt->execute([$user_id, "Changed password"]);
             } else {
                 $password_message = "Failed to update password. Please try again.";
                 $password_error = true;
@@ -82,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'], $
     }
 }
 ?>
+
 
 
 <!doctype html>

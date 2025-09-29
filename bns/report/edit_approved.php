@@ -8,6 +8,12 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// ✅ Activity log function
+function logActivity($pdo, $user_id, $action) {
+    $stmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
+    $stmt->execute([$user_id, $action]);
+}
+
 // Validate report ID
 $reportId = $_GET['id'] ?? 0;
 if (!is_numeric($reportId) || $reportId <= 0) {
@@ -15,7 +21,13 @@ if (!is_numeric($reportId) || $reportId <= 0) {
 }
 
 // Fetch report and BNS data
-$stmt = $pdo->prepare("SELECT r.*, b.* FROM reports r LEFT JOIN bns_reports b ON r.id = b.report_id WHERE r.id = :id");
+$stmt = $pdo->prepare("
+    SELECT r.*, b.*, u.barangay AS user_barangay 
+    FROM reports r 
+    LEFT JOIN bns_reports b ON r.id = b.report_id 
+    LEFT JOIN users u ON u.id = r.user_id
+    WHERE r.id = :id
+");
 $stmt->execute(['id' => $reportId]);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -26,9 +38,51 @@ if (!$row) {
 // Check if BNS data exists
 $has_bns = !empty($row['id']);
 
-// Set barangay logo (example)
-$barangay_logo = $row['barangay_logo'] ?? 'default.png';
+// ✅ Function to map barangay name to logo
+function getBarangayLogo($barangay) {
+    $map = [
+        'cno' => 'CNO.png',
+        'amoros' => 'Amoros.png',
+        'bolisong' => 'Bolisong.png',
+        'cogon' => 'Cogon.png',
+        'himaya' => 'Himaya.png',
+        'hinigdaan' => 'Hinigdaan.png',
+        'kalabaylabay' => 'Kalabaylabay.png',
+        'molugan' => 'Molugan.png',
+        'pedro s. baculio' => 'Pedro_sa_Baculio.png',
+        'pedro sa baculio' => 'Pedro_sa_Baculio.png',
+        'poblacion' => 'Poblacion.png',
+        'quibonbon' => 'Quibonbon.png',
+        'sambulawan' => 'Sambulawan.png',
+        'san francisco de asis' => 'San_Francisco_de_Asis.png',
+        'sinaloc' => 'Sinaloc.png',
+        'taytay' => 'Taytay.png',
+        'ulaliman' => 'Ulaliman.png'
+    ];
+
+    $key = strtolower(trim($barangay ?? ''));
+    $file = $map[$key] ?? 'default.png';
+
+    // Check if file exists
+    $path = __DIR__ . '/../../logos/barangays/' . $file;
+    if (!file_exists($path)) {
+        $file = 'default.png';
+    }
+
+    return $file;
+}
+
+// ✅ Determine barangay logo
+$barangay_name = $has_bns ? ($row['barangay'] ?? $row['user_barangay']) : '';
+$barangay_logo = getBarangayLogo($barangay_name);
+
+// ✅ Log activity: viewing the report
+if (isset($_SESSION['user_id'])) {
+    $reportTitle = $row['title'] ?? "Untitled Report";
+    logActivity($pdo, $_SESSION['user_id'], "Viewed report (ID: $reportId, Title: $reportTitle)");
+}
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -113,7 +167,7 @@ function copyTitle() {
         <tr>
             <td class="header-left">BNS Form No. IC<br>Barangay Nutrition Profile</td>
             <td class="header-logos">
-                <img src="../../logos/barangays/<?= htmlspecialchars($barangay_logo) ?>" alt="Barangay Logo">
+                <img src="../../logos/barangays/<?= urlencode($barangay_logo) ?>" alt="Barangay Logo">
                 <img src="../../logos/fixed/Seal_of_El_Salvador__Misamis_Oriental-removebg-preview.png">
                 <img src="../../logos/fixed/National_Nutrition_Council__NNC_.svg-removebg-preview.png">
                 <img src="../../logos/fixed/Bagong-Pilipinas-logo.png">

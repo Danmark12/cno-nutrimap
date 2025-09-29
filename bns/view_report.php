@@ -1,140 +1,169 @@
-  <?php
-  // view_report.php
-  session_start();
-  require '../db/config.php'; // PDO connection
+<?php
+// view_report.php
+session_start();
+require '../db/config.php'; // PDO connection
 
-  $report_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-  if ($report_id <= 0) {
-      die("Report not found!");
-  }
+$report_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if ($report_id <= 0) {
+    die("Report not found!");
+}
 
-  $stmt = $pdo->prepare("
-      SELECT r.id AS reports_id, r.report_date, r.report_time, r.status,
-            b.*
-      FROM reports r
-      LEFT JOIN bns_reports b ON b.report_id = r.id
-      WHERE r.id = :id
-      LIMIT 1
-  ");
-  $stmt->execute(['id' => $report_id]);
-  $row = $stmt->fetch(PDO::FETCH_ASSOC);
+$stmt = $pdo->prepare("
+    SELECT r.id AS reports_id, r.report_date, r.report_time, r.status,
+          b.*
+    FROM reports r
+    LEFT JOIN bns_reports b ON b.report_id = r.id
+    WHERE r.id = :id
+    LIMIT 1
+");
+$stmt->execute(['id' => $report_id]);
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-  if (!$row) {
-      die("Report not found!");
-  }
+if (!$row) {
+    die("Report not found!");
+}
 
-  $has_bns = !is_null($row['report_id']);
+$has_bns = !is_null($row['report_id']);
 
-  function getBarangayLogo($barangay) {
-      $logos = [
-          'CNO' => 'CNO.png',
-          'Amoros' => 'Amoros.png',
-          'Bolisong' => 'Bolisong.png',
-          'Cogon' => 'Cogon.png',
-          'Himaya' => 'Himaya.png',
-          'Hinigdaan' => 'Hinigdaan.png',
-          'Kalabaylabay' => 'Kalabaylabay.png',
-          'Molugan' => 'Molugan.png',
-          'Pedro S. Baculio' => 'Pedro sa Baculio.png',
-          'Pedro sa Baculio' => 'Pedro sa Baculio.png',
-          'Poblacion' => 'Poblacion.png',
-          'Quibonbon' => 'Quibonbon.png',
-          'Sambulawan' => 'Sambulawan.png',
-          'San Francisco de Asis' => 'San Francisco de Asis.png',
-          'Sinaloc' => 'Sinaloc.png',
-          'Taytay' => 'Taytay.png',
-          'Ulaliman' => 'Ulaliman.png'
-      ];
-      return isset($logos[$barangay]) ? $logos[$barangay] : 'default.png';
-  }
+/**
+ * Get barangay logo safely.
+ * Checks if file exists; if not, uses default.png
+ */
+function getBarangayLogo($barangay) {
+    $logos = [
+        'CNO' => 'CNO.png',
+        'Amoros' => 'Amoros.png',
+        'Bolisong' => 'Bolisong.png',
+        'Cogon' => 'Cogon.png',
+        'Himaya' => 'Himaya.png',
+        'Hinigdaan' => 'Hinigdaan.png',
+        'Kalabaylabay' => 'Kalabaylabay.png',
+        'Molugan' => 'Molugan.png',
+        'Pedro S. Baculio' => 'Pedro sa Baculio.png',
+        'Pedro sa Baculio' => 'Pedro sa Baculio.png',
+        'Poblacion' => 'Poblacion.png',
+        'Quibonbon' => 'Quibonbon.png',
+        'Sambulawan' => 'Sambulawan.png',
+        'San Francisco de Asis' => 'San Francisco de Asis.png',
+        'Sinaloc' => 'Sinaloc.png',
+        'Taytay' => 'Taytay.png',
+        'Ulaliman' => 'Ulaliman.png'
+    ];
 
-  function val($arr, $k, $fmt = null) {
-      if (!isset($arr[$k]) || $arr[$k] === null || $arr[$k] === '') return '—';
-      $v = $arr[$k];
-      if ($fmt === 'int') return (int)$v;
-      if ($fmt === 'pct') return number_format((float)$v, 2) . '%';
-      if ($fmt === 'dec2') return number_format((float)$v, 2);
-      return htmlspecialchars($v);
-  }
+    $logo = isset($logos[$barangay]) ? $logos[$barangay] : 'default.png';
+    $path = __DIR__ . '/../logos/barangays/' . $logo;
 
-  $barangay_logo = getBarangayLogo($row['barangay'] ?? '');
-  ?>
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-  <meta charset="UTF-8">
-  <title>View BNS Report — CNO NutriMap</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{
-    background:#f0f0f0;
-    font-family:"Times New Roman",serif;
-    font-size:12px;
-    line-height:1.4
-  }
-  .body-layout{display:flex;justify-content:center;padding:20px 0;}
-  .container{max-width:1000px;width:100%;margin:0 auto;}
-  .document{
-    background:#fff;
-    width:21cm;
-    min-height:33cm;
-    margin:0 auto 30px auto;
-    padding:2.5cm;
-    box-shadow:0 0 8px rgba(0,0,0,0.15);
-    position:relative;
-    page-break-after:always;
-  }
-  @media print {
-    body{background:#fff;}
-    .document{box-shadow:none;margin:0;width:100%;min-height:auto;padding:2cm;}
-  }
-  .header-table{width:100%;border-collapse:collapse;margin-bottom:20px}
-  .header-table td{border:none;padding:4px 6px;vertical-align:middle}
-  .header-left{font-weight:bold;font-size:14px}
-  .header-logos{text-align:right}
-  .header-logos img{height:60px;margin-left:6px}
-  .report-info{text-align:center;margin-bottom:20px;font-size:12px}
-  table{width:100%;border-collapse:collapse;margin-bottom:15px;table-layout:fixed}
-  th,td{border:1px solid #000;padding:6px 8px;text-align:left;font-size:12px;vertical-align:top}
-  th{background:#ddd}
-  .indent{padding-left:20px}
+    if (!file_exists($path)) {
+        $logo = 'default.png';
+    }
 
-  /* ✅ FIX: second column uniform size */
-  table td:nth-child(2),
-  table th:nth-child(2) {
-    width: 180px; /* adjust width as needed */
-    text-align: center;
-  }
+    return $logo;
+}
 
-  /* ✅ Number-cell layout */
-  .number-cell {
+/**
+ * Helper to safely display values
+ */
+function val($arr, $k, $fmt = null) {
+    if (!isset($arr[$k]) || $arr[$k] === null || $arr[$k] === '') return '—';
+    $v = $arr[$k];
+    if ($fmt === 'int') return (int)$v;
+    if ($fmt === 'pct') return number_format((float)$v, 2) . '%';
+    if ($fmt === 'dec2') return number_format((float)$v, 2);
+    return htmlspecialchars($v);
+}
+
+// Get barangay logo
+$barangay_logo = getBarangayLogo($row['barangay'] ?? '');
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>View BNS Report — CNO NutriMap</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#f0f0f0;
+  font-family:"Times New Roman",serif;
+  font-size:12px;
+  line-height:1.4
+}
+.body-layout{display:flex;justify-content:center;padding:20px 0;}
+.container{max-width:1000px;width:100%;margin:0 auto;}
+.document{
+  background:#fff;
+  width:21cm;
+  min-height:33cm;
+  margin:0 auto 30px auto;
+  padding:2.5cm;
+  box-shadow:0 0 8px rgba(0,0,0,0.15);
+  position:relative;
+  page-break-after:always;
+}
+@media print {
+  body{background:#fff;}
+  .document{box-shadow:none;margin:0;width:100%;min-height:auto;padding:2cm;}
+}
+.header-table{width:100%;border-collapse:collapse;margin-bottom:20px}
+.header-table td{border:none;padding:4px 6px;vertical-align:middle}
+.header-left{font-weight:bold;font-size:14px}
+
+/* ✅ FIXED LOGOS: single row, right-aligned, fully visible */
+.header-logos{
     display: flex;
-    justify-content: space-between;
-    text-align: center;
-  }
-  .number-cell div {
-    flex: 1;
-    padding: 4px;
-    border-left: 1px solid #000;
-  }
-  .number-cell div:first-child {
-    border-left: none;
-  }
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px; /* space between logos */
+}
+.header-logos img{
+    max-height: 60px;
+    width: auto;
+    display: inline-block;
+}
 
-  .page-number{text-align:right;font-size:12px;color:#555;margin-top:10px}
-  .notice{background:#fff3cd;padding:10px;border:1px solid #ffeeba;margin-bottom:15px}
-  </style>
-  </head>
-  <body>
-  <div class="layout">
-  <?php include 'header.php'; ?>
-  <div class="body-layout">
-  <div class="container">
+.report-info{text-align:center;margin-bottom:20px;font-size:12px}
+table{width:100%;border-collapse:collapse;margin-bottom:15px;table-layout:fixed}
+th,td{border:1px solid #000;padding:6px 8px;text-align:left;font-size:12px;vertical-align:top}
+th{background:#ddd}
+.indent{padding-left:20px}
 
-  <!-- ✅ Added: Report Title and Buttons -->
- <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+/* ✅ FIX: second column uniform size */
+table td:nth-child(2),
+table th:nth-child(2) {
+  width: 180px; /* adjust width as needed */
+  text-align: center;
+}
+
+/* ✅ Number-cell layout */
+.number-cell {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+}
+.number-cell div {
+  flex: 1;
+  padding: 4px;
+  border-left: 1px solid #000;
+}
+.number-cell div:first-child {
+  border-left: none;
+}
+
+.page-number{text-align:right;font-size:12px;color:#555;margin-top:10px}
+.notice{background:#fff3cd;padding:10px;border:1px solid #ffeeba;margin-bottom:15px}
+</style>
+</head>
+<body>
+<div class="layout">
+<?php include 'header.php'; ?>
+<div class="body-layout">
+<div class="container">
+
+<!-- ✅ Added: Report Title and Buttons -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
     <h2 style="font-size:18px;">
       <span style="font-weight:normal;">Title:</span>
       <?= $has_bns ? htmlspecialchars($row['title']) : 'Barangay Nutrition Report' ?>
@@ -150,26 +179,27 @@
          <i class="fa fa-arrow-left"></i> Back
       </a>
     </div>
-  </div>
+</div>
 
-  <?php if (!$has_bns): ?>
-  <div class="notice">
-  <strong>Note:</strong> Report exists (ID: <?= htmlspecialchars($row['reports_id']) ?>) but no BNS data was found.
-  </div>
-  <?php endif; ?>
+<?php if (!$has_bns): ?>
+<div class="notice">
+<strong>Note:</strong> Report exists (ID: <?= htmlspecialchars($row['reports_id']) ?>) but no BNS data was found.
+</div>
+<?php endif; ?>
 
-  <div class="document">
-  <table class="header-table">
-  <tr>
-  <td class="header-left">BNS Form No. IC<br>Barangay Nutrition Profile</td>
-  <td class="header-logos">
-  <img src="../logos/barangays/<?= htmlspecialchars($barangay_logo) ?>" alt="Barangay Logo">
-  <img src="../logos/fixed/Seal_of_El_Salvador__Misamis_Oriental-removebg-preview.png">
-  <img src="../logos/fixed/National_Nutrition_Council__NNC_.svg-removebg-preview.png">
-  <img src="../logos/fixed/Bagong-Pilipinas-logo.png">
-  </td>
-  </tr>
-  </table>
+<div class="document">
+<table class="header-table">
+<tr>
+<td class="header-left">BNS Form No. IC<br>Barangay Nutrition Profile</td>
+<td class="header-logos">
+<img src="../logos/barangays/<?= urlencode($barangay_logo) ?>" alt="Barangay Logo">
+<img src="../logos/fixed/Seal_of_El_Salvador__Misamis_Oriental-removebg-preview.png" alt="City Logo">
+<img src="../logos/fixed/National_Nutrition_Council__NNC_.svg-removebg-preview.png" alt="NNC Logo">
+<img src="../logos/fixed/Bagong-Pilipinas-logo.png" alt="Bagong Pilipinas Logo">
+</td>
+</tr>
+</table>
+
 
   <div class="report-info">
       <h3>BARANGAY SITUATIONAL ANALYSIS (BSA)</h3>				

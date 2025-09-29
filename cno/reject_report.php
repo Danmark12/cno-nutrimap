@@ -10,10 +10,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'CNO') {
 
 if (isset($_GET['id'])) {
     $report_id = intval($_GET['id']);
+    $user_id = $_SESSION['user_id'];
 
     try {
+        // ✅ Reject the report
         $pdo->prepare("UPDATE reports SET status = 'Rejected' WHERE id = ?")
             ->execute([$report_id]);
+
+        // ✅ Log activity
+        $logStmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action, created_at) VALUES (?, ?, NOW())");
+        $logStmt->execute([$user_id, "Rejected report ID: $report_id"]);
 
         $_SESSION['success'] = "Report has been rejected.";
         header("Location: cno_reports.php");

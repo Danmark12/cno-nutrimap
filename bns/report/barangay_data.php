@@ -57,7 +57,7 @@ if (!$error) {
 // ✅ Safe flag for checking if BNS data exists
 $has_bns = !empty($row) && !empty($row['report_id']);
 
-// ✅ Barangay logo fetcher (clean + lowercase keys)
+// ✅ Barangay logo fetcher (normalized keys)
 function getBarangayLogo($barangay) {
     $map = [
         'cno' => 'CNO.png',
@@ -68,19 +68,24 @@ function getBarangayLogo($barangay) {
         'hinigdaan' => 'Hinigdaan.png',
         'kalabaylabay' => 'Kalabaylabay.png',
         'molugan' => 'Molugan.png',
-        'pedro s. baculio' => 'Pedro sa Baculio.png',
-        'pedro sa baculio' => 'Pedro sa Baculio.png',
+        'pedro s. baculio' => 'Pedro_sa_Baculio.png',
+        'pedro sa baculio' => 'Pedro_sa_Baculio.png',
         'poblacion' => 'Poblacion.png',
         'quibonbon' => 'Quibonbon.png',
         'sambulawan' => 'Sambulawan.png',
-        'san francisco de asis' => 'San Francisco de Asis.png',
+        'san francisco de asis' => 'San_Francisco_de_Asis.png',
         'sinaloc' => 'Sinaloc.png',
         'taytay' => 'Taytay.png',
         'ulaliman' => 'Ulaliman.png'
     ];
+
     $key = strtolower(trim($barangay ?? ''));
     return $map[$key] ?? 'default.png';
 }
+
+// ✅ Determine barangay logo
+$barangay_name = $has_bns ? $row['barangay'] : '';
+$barangay_logo = getBarangayLogo($barangay_name);
 
 // ✅ Safe value formatter (centralized handling)
 function val($arr, $k, $fmt = null) {
@@ -102,87 +107,92 @@ function val($arr, $k, $fmt = null) {
     }
 }
 
+
 // ✅ Barangay logo fallback
 $barangay_logo = $has_bns ? getBarangayLogo($row['barangay'] ?? '') : 'default.png';
 ?>
 
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-    <meta charset="UTF-8">
-    <title>View BNS Report — CNO NutriMap</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      background:#f0f0f0;
-      font-family:"Times New Roman",serif;
-      font-size:12px;
-      line-height:1.4
-    }
-    .body-layout{display:flex;justify-content:center;padding:20px 0;}
-    .container{max-width:1000px;width:100%;margin:0 auto;}
-    .document{
-      background:#fff;
-      width:21cm;
-      min-height:33cm;
-      margin:0 auto 30px auto;
-      padding:2.5cm;
-      box-shadow:0 0 8px rgba(0,0,0,0.15);
-      position:relative;
-      page-break-after:always;
-    }
-    @media print {
-      body{background:#fff;}
-      .document{box-shadow:none;margin:0;width:100%;min-height:auto;padding:2cm;}
-    }
-    .header-table{width:100%;border-collapse:collapse;margin-bottom:20px}
-    .header-table td{border:none;padding:4px 6px;vertical-align:middle}
-    .header-left{font-weight:bold;font-size:14px}
-    .header-logos{text-align:right}
-    .header-logos img{height:60px;margin-left:6px}
-    .report-info{text-align:center;margin-bottom:20px;font-size:12px}
-    table{width:100%;border-collapse:collapse;margin-bottom:15px;table-layout:fixed}
-    th,td{border:1px solid #000;padding:6px 8px;text-align:left;font-size:12px;vertical-align:top}
-    th{background:#ddd}
-    .indent{padding-left:20px}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>View BNS Report — CNO NutriMap</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#f0f0f0;
+  font-family:"Times New Roman",serif;
+  font-size:12px;
+  line-height:1.4
+}
+.body-layout{display:flex;justify-content:center;padding:20px 0;}
+.container{max-width:1000px;width:100%;margin:0 auto;}
+.document{
+  background:#fff;
+  width:21cm;
+  min-height:33cm;
+  margin:0 auto 30px auto;
+  padding:2.5cm;
+  box-shadow:0 0 8px rgba(0,0,0,0.15);
+  position:relative;
+  page-break-after:always;
+}
+@media print {
+  body{background:#fff;}
+  .document{box-shadow:none;margin:0;width:100%;min-height:auto;padding:2cm;}
+}
+.header-table{width:100%;border-collapse:collapse;margin-bottom:20px}
+.header-table td{border:none;padding:4px 6px;vertical-align:middle}
+.header-left{font-weight:bold;font-size:14px}
+.header-logos{
+  display:flex;
+  justify-content:flex-start;
+  align-items:right;
+  gap:8px;
+}
+.header-logos img{height: 75px;object-fit:contain}
+.report-info{text-align:center;margin-bottom:20px;font-size:12px}
+table{width:100%;border-collapse:collapse;margin-bottom:15px;table-layout:fixed}
+th,td{border:1px solid #000;padding:6px 8px;text-align:left;font-size:12px;vertical-align:top}
+th{background:#ddd}
+.indent{padding-left:20px}
 
-    /* ✅ FIX: second column uniform size */
-    table td:nth-child(2),
-    table th:nth-child(2) {
-      width: 180px; /* adjust width as needed */
-      text-align: center;
-    }
+/* ✅ FIX: second column uniform size */
+table td:nth-child(2),
+table th:nth-child(2) {
+  width: 180px; 
+  text-align: center;
+}
 
-    /* ✅ Number-cell layout */
-    .number-cell {
-      display: flex;
-      justify-content: space-between;
-      text-align: center;
-    }
-    .number-cell div {
-      flex: 1;
-      padding: 4px;
-      border-left: 1px solid #000;
-    }
-    .number-cell div:first-child {
-      border-left: none;
-    }
+/* ✅ Number-cell layout */
+.number-cell {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+}
+.number-cell div {
+  flex: 1;
+  padding: 4px;
+  border-left: 1px solid #000;
+}
+.number-cell div:first-child {
+  border-left: none;
+}
 
-    .page-number{text-align:right;font-size:12px;color:#555;margin-top:10px}
-    .notice{background:#fff3cd;padding:10px;border:1px solid #ffeeba;margin-bottom:15px}
-    </style>
-    </head>
-    <body>
-    <div class="layout">
-    <?php include '../header.php'; ?>
-    <div class="body-layout">
-    <div class="container">
+.page-number{text-align:right;font-size:12px;color:#555;margin-top:10px}
+.notice{background:#fff3cd;padding:10px;border:1px solid #ffeeba;margin-bottom:15px}
+</style>
+</head>
+<body>
+<div class="layout">
+<?php include '../header.php'; ?>
+<div class="body-layout">
+<div class="container">
 
-    
-    <div class="body-layout">
-      <main class="content">
+<div class="body-layout">
+  <main class="content">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
     <h2 style="font-size:18px;">
       <span style="font-weight:normal;">Title:</span>
@@ -194,26 +204,27 @@ $barangay_logo = $has_bns ? getBarangayLogo($row['barangay'] ?? '') : 'default.p
          <i class="fa fa-arrow-left"></i> Back
       </a>
     </div>
-  </div>
+</div>
 
-    <?php if (!$has_bns): ?>
-    <div class="notice">
-    <strong>Note:</strong> Report exists (ID: <?= htmlspecialchars($row['reports_id']) ?>) but no BNS data was found.
-    </div>
-    <?php endif; ?>
+<?php if (!$has_bns): ?>
+<div class="notice">
+<strong>Note:</strong> Report exists (ID: <?= htmlspecialchars($row['reports_id'] ?? $report_id) ?>) but no BNS data was found.
+</div>
+<?php endif; ?>
 
-    <div class="document">
-    <table class="header-table">
-    <tr>
-    <td class="header-left">BNS Form No. IC<br>Barangay Nutrition Profile</td>
-    <td class="header-logos">
-    <img src="../logos/barangays/<?= htmlspecialchars($barangay_logo) ?>" alt="Barangay Logo">
-    <img src="../logos/fixed/Seal_of_El_Salvador__Misamis_Oriental-removebg-preview.png">
-    <img src="../logos/fixed/National_Nutrition_Council__NNC_.svg-removebg-preview.png">
-    <img src="../logos/fixed/Bagong-Pilipinas-logo.png">
-    </td>
-    </tr>
-    </table>
+<div class="document">
+<table class="header-table">
+<tr>
+<td class="header-left">BNS Form No. IC<br>Barangay Nutrition Profile</td>
+<td class="header-logos">
+<img src="../../logos/barangays/<?= urlencode($barangay_logo) ?>" alt="Barangay Logo">
+  <img src="../../logos/fixed/Seal_of_El_Salvador__Misamis_Oriental-removebg-preview.png" alt="El Salvador Seal">
+  <img src="../../logos/fixed/National_Nutrition_Council__NNC_.svg-removebg-preview.png" alt="NNC Logo">
+  <img src="../../logos/fixed/Bagong-Pilipinas-logo.png" alt="Bagong Pilipinas">
+</td>
+</tr>
+</table>
+
 
     <div class="report-info">
         <h3>BARANGAY SITUATIONAL ANALYSIS (BSA)</h3>				

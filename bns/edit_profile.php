@@ -29,20 +29,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
     $address = trim($_POST['address']);
 
+    // Update user record
     $stmt = $pdo->prepare("UPDATE users 
                            SET first_name = ?, last_name = ?, username = ?, phone_number = ?, email = ?, address = ?
                            WHERE id = ?");
     $stmt->execute([$first_name, $last_name, $username, $phone, $email, $address, $user_id]);
 
+    // ✅ Log activity
+    $logStmt = $pdo->prepare("
+        INSERT INTO activity_logs (user_id, action, details, created_at)
+        VALUES (:user_id, :action, :details, NOW())
+    ");
+    $logStmt->execute([
+        ':user_id' => $user_id,
+        ':action' => 'Profile Updated',
+        ':details' => "User updated profile: Name changed to $first_name $last_name, Username: $username, Email: $email"
+    ]);
+
     header("Location: profile.php?updated=1");
     exit();
 }
 
+// ✅ Profile picture fallback
 $profile_pic = "../uploads/default_profile.png";
 if (!empty($user['profile_pic']) && file_exists("../uploads/" . $user['profile_pic'])) {
     $profile_pic = "../uploads/" . htmlspecialchars($user['profile_pic']);
 }
 ?>
+
 
 <!doctype html>
 <html lang="en">
