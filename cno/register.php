@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'db/config.php';
+require '../db/config.php';
 
 // Handle form submission
 $message = "";
@@ -60,31 +60,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>Create Account - CNO NutriMap</title>
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         body {
             margin: 0;
             font-family: Arial, sans-serif;
             background: #f4f6f9;
         }
-        .topbar {
-            background: white;
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid #ddd;
-        }
-        .topbar h2 {
-            margin: 0;
-            font-size: 18px;
-            color: #0d9488;
-        }
-        .topbar input {
-            padding: 5px 10px;
-            width: 250px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-        }
+.back-btn {
+    position: static;   /* remove absolute */
+    background: #0d9488;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+}
+.back-btn:hover {
+    background: #0b7a70;
+}
+
         .container {
             display: flex;
             justify-content: center;
@@ -137,15 +133,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+      <div class="layout">
+    <?php include 'header.php'; ?>
 
-    <!-- Top Bar -->
-    <div class="topbar">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:22px; cursor:pointer;">☰</span>
-            <h2>CNO NutriMap</h2>
-        </div>
-        <input type="text" placeholder="Search...">
-        <div style="font-size:20px; cursor:pointer;">🔔</div>
+<div class="card1">
+    <div style="display:flex;justify-content:space-between;align-items:right;margin-bottom:15px;">
+        <a href="users.php" class="back-btn"><i class="fa fa-arrow-left"></i> Back</a>
     </div>
 
     <!-- Register Card -->
@@ -219,6 +212,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     </script>
-
+    </div>
 </body>
 </html>
