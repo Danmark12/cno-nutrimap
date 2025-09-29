@@ -1,64 +1,90 @@
-  <?php
-  // view_report.php
-  session_start();
-  require '../db/config.php'; // PDO connection
+<?php
+// ✅ view_report.php
+session_start();
+require '../../db/config.php'; // PDO connection
 
-  $report_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-  if ($report_id <= 0) {
-      die("Report not found!");
-  }
+// ✅ Validate report ID
+$report_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if ($report_id <= 0) {
+    $error = "Report not found!";
+}
 
-  $stmt = $pdo->prepare("
-      SELECT r.id AS reports_id, r.report_date, r.report_time, r.status,
-            b.*
-      FROM reports r
-      LEFT JOIN bns_reports b ON b.report_id = r.id
-      WHERE r.id = :id
-      LIMIT 1
-  ");
-  $stmt->execute(['id' => $report_id]);
-  $row = $stmt->fetch(PDO::FETCH_ASSOC);
+// ✅ Get title & year of selected report first
+if (!isset($error)) {
+    $stmt = $pdo->prepare("
+        SELECT b.title, b.year
+        FROM reports r
+        JOIN bns_reports b ON b.report_id = r.id
+        WHERE r.id = :id AND r.status = 'Approved'
+        LIMIT 1
+    ");
+    $stmt->execute(['id' => $report_id]);
+    $meta = $stmt->fetch(PDO::FETCH_ASSOC);
 
-  if (!$row) {
-      die("Report not found!");
-  }
+    if (!$meta) {
+        $error = "Report not found or not approved!";
+    }
+}
 
-  $has_bns = !is_null($row['report_id']);
+// ✅ Fetch the latest approved report with same title + year
+if (!isset($error)) {
+    $stmt = $pdo->prepare("
+        SELECT r.id AS reports_id, r.report_date, r.report_time, r.status, b.*
+        FROM reports r
+        LEFT JOIN bns_reports b ON b.report_id = r.id
+        WHERE r.status = 'Approved'
+          AND b.title = :title
+          AND b.year = :year
+        ORDER BY r.report_date DESC, r.report_time DESC
+        LIMIT 1
+    ");
+    $stmt->execute([
+        'title' => $meta['title'],
+        'year'  => $meta['year']
+    ]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-  function getBarangayLogo($barangay) {
-      $logos = [
-          'CNO' => 'CNO.png',
-          'Amoros' => 'Amoros.png',
-          'Bolisong' => 'Bolisong.png',
-          'Cogon' => 'Cogon.png',
-          'Himaya' => 'Himaya.png',
-          'Hinigdaan' => 'Hinigdaan.png',
-          'Kalabaylabay' => 'Kalabaylabay.png',
-          'Molugan' => 'Molugan.png',
-          'Pedro S. Baculio' => 'Pedro sa Baculio.png',
-          'Pedro sa Baculio' => 'Pedro sa Baculio.png',
-          'Poblacion' => 'Poblacion.png',
-          'Quibonbon' => 'Quibonbon.png',
-          'Sambulawan' => 'Sambulawan.png',
-          'San Francisco de Asis' => 'San Francisco de Asis.png',
-          'Sinaloc' => 'Sinaloc.png',
-          'Taytay' => 'Taytay.png',
-          'Ulaliman' => 'Ulaliman.png'
-      ];
-      return isset($logos[$barangay]) ? $logos[$barangay] : 'default.png';
-  }
+    if (!$row) {
+        $error = "No updated report found!";
+    }
+}
 
-  function val($arr, $k, $fmt = null) {
-      if (!isset($arr[$k]) || $arr[$k] === null || $arr[$k] === '') return '—';
-      $v = $arr[$k];
-      if ($fmt === 'int') return (int)$v;
-      if ($fmt === 'pct') return number_format((float)$v, 2) . '%';
-      if ($fmt === 'dec2') return number_format((float)$v, 2);
-      return htmlspecialchars($v);
-  }
+$has_bns = isset($row) && !is_null($row['report_id']);
 
-  $barangay_logo = getBarangayLogo($row['barangay'] ?? '');
-  ?>
+function getBarangayLogo($barangay) {
+    $logos = [
+        'CNO' => 'CNO.png',
+        'Amoros' => 'Amoros.png',
+        'Bolisong' => 'Bolisong.png',
+        'Cogon' => 'Cogon.png',
+        'Himaya' => 'Himaya.png',
+        'Hinigdaan' => 'Hinigdaan.png',
+        'Kalabaylabay' => 'Kalabaylabay.png',
+        'Molugan' => 'Molugan.png',
+        'Pedro S. Baculio' => 'Pedro sa Baculio.png',
+        'Pedro sa Baculio' => 'Pedro sa Baculio.png',
+        'Poblacion' => 'Poblacion.png',
+        'Quibonbon' => 'Quibonbon.png',
+        'Sambulawan' => 'Sambulawan.png',
+        'San Francisco de Asis' => 'San Francisco de Asis.png',
+        'Sinaloc' => 'Sinaloc.png',
+        'Taytay' => 'Taytay.png',
+        'Ulaliman' => 'Ulaliman.png'
+    ];
+    return isset($logos[$barangay]) ? $logos[$barangay] : 'default.png';
+}
+
+function val($arr, $k, $fmt = null) {
+    if (!isset($arr[$k]) || $arr[$k] === null || $arr[$k] === '') return '—';
+    $v = $arr[$k];
+    if ($fmt === 'int') return (int)$v;
+    if ($fmt === 'pct') return number_format((float)$v, 2) . '%';
+    if ($fmt === 'dec2') return number_format((float)$v, 2);
+    return htmlspecialchars($v);
+}
+
+$barangay_logo = isset($row['barangay']) ? getBarangayLogo($row['barangay']) : 'default.png';
+?>
   <!DOCTYPE html>
   <html lang="en">
   <head>
@@ -129,28 +155,9 @@
   </head>
   <body>
   <div class="layout">
-  <?php include 'header.php'; ?>
+  <?php include '../header.php'; ?>
   <div class="body-layout">
   <div class="container">
-
-  <!-- ✅ Added: Report Title and Buttons -->
- <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-    <h2 style="font-size:18px;">
-      <span style="font-weight:normal;">Title:</span>
-      <?= $has_bns ? htmlspecialchars($row['title']) : 'Barangay Nutrition Report' ?>
-    </h2>
-    <div>
-    <!-- ✅ Fixed Edit button link -->
-    <a href="report/edit_approved.php?id=<?= $row['reports_id'] ?>" 
-       style="background:#007bff;color:#fff;padding:6px 12px;border-radius:4px;text-decoration:none;margin-right:8px;">
-       <i class="fa fa-edit"></i> Edit
-    </a>
-      <a href="javascript:history.back()" 
-         style="background:#6c757d;color:#fff;padding:6px 12px;border-radius:4px;text-decoration:none;">
-         <i class="fa fa-arrow-left"></i> Back
-      </a>
-    </div>
-  </div>
 
   <?php if (!$has_bns): ?>
   <div class="notice">
@@ -254,6 +261,12 @@
   <!-- PAGE 2 -->
   <div class="document">
   <table>
+    <thead>
+      <tr>
+    <th>Indicator</th>
+    <th>Number / %</th>
+  </tr>
+  </thead>
   <tbody>
   <tr><td>16. Kindergarten Enrolled</td><td><?= $has_bns ? val($row,'ind16','int') : '—' ?></td></tr>
   <tr><td>17. School children (Grades 1-6)</td><td><?= $has_bns ? val($row,'ind17','int') : '—' ?></td></tr>
@@ -383,7 +396,7 @@
   <div class="page-number">Page 2</div>
   </div>
 
-    <!-- PAGE 3 -->
+  <!-- PAGE 3 -->
   <div class="document">
   <table>
   <colgroup>
@@ -443,11 +456,12 @@
     <td>36. Total number of households beneficiaries of Pantawid Pamilyang Pilipino</td>
     <td><?= $has_bns ? val($row,'ind36','int') : '—' ?></td>
   </tr>
+
   </tbody>
   </table>
-
   <div class="page-number">Page 3</div>
   </div>
+
 
   </body>
   </html>

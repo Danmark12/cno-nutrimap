@@ -11,17 +11,19 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 
-// --- Fetch approved reports for this user only ---
+// --- Fetch approved reports (grouped by title + year) ---
 $stmt = $pdo->prepare("
-    SELECT r.id, r.report_date, b.title
+    SELECT b.title, b.year, COUNT(r.id) as total_reports, MAX(r.report_date) as latest_date
     FROM reports r
     JOIN bns_reports b ON b.report_id = r.id
     WHERE r.status = 'Approved'
       AND r.user_id = :user_id
-    ORDER BY r.report_date DESC
+      AND b.year = 2025
+    GROUP BY b.title, b.year
+    ORDER BY latest_date DESC
 ");
 $stmt->execute([':user_id' => $userId]);
-$reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$files = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!doctype html>
 <html lang="en">
@@ -45,15 +47,15 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
     .add-btn { background:#009688; color:#fff; text-decoration:none; padding:8px 14px; border-radius:4px; font-size:14px; display:flex; align-items:center; gap:6px; }
     .add-btn:hover { background:#00796b; }
 
-    /* ✅ Report List */
+    /* ✅ File List */
     h3.section-title { margin:0 0 10px 0; font-size:18px; }
-    .report-list { display:flex; flex-direction:column; gap:8px; }
-    .report-card { background:#fff; border:1px solid #ccc; border-radius:4px; padding:12px 15px; display:flex; justify-content:space-between; align-items:center; }
-    .report-title { font-size:15px; color:#333; font-weight:500; }
-    .report-actions { display:flex; align-items:center; gap:15px; font-size:14px; }
-    .report-date { color:#555; }
-    .export-link { color:#007bff; text-decoration:none; font-weight:500; }
-    .export-link:hover { text-decoration:underline; }
+    .file-list { display:flex; flex-direction:column; gap:10px; }
+    .file-card { background:#fff; border:1px solid #ccc; border-radius:6px; padding:15px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+    .file-title { font-size:16px; color:#333; font-weight:600; }
+    .file-meta { font-size:13px; color:#555; }
+    .file-actions { display:flex; align-items:center; gap:15px; font-size:14px; }
+    .file-link { color:#007bff; text-decoration:none; font-weight:500; }
+    .file-link:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
@@ -77,21 +79,24 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
           </div>
         </div>
 
-        <!-- ✅ Report List -->
-        <h3 class="section-title">Barangay Data</h3>
-        <div class="report-list">
-          <?php if ($reports): ?>
-            <?php foreach ($reports as $r): ?>
-              <div class="report-card">
-                <div class="report-title"><?= htmlspecialchars($r['title']) ?></div>
-                <div class="report-actions">
-                  <div class="report-date"><?= date("n-j-Y", strtotime($r['report_date'])) ?></div>
-                  <a class="export-link" href="export_report.php?id=<?= $r['id'] ?>">Export</a>
+        <!-- ✅ File List -->
+        <h3 class="section-title">Barangay Data (2025)</h3>
+        <div class="file-list">
+          <?php if ($files): ?>
+            <?php foreach ($files as $f): ?>
+              <div class="file-card">
+                <div>
+                  <div class="file-title"><?= htmlspecialchars($f['title']) ?></div>
+                  <div class="file-meta"><?= $f['total_reports'] ?> reports • Latest: <?= date("M j, Y", strtotime($f['latest_date'])) ?></div>
+                </div>
+                <div class="file-actions">
+                  <a class="file-link" href="report/barangay_data.php?title=<?= urlencode($f['title']) ?>&year=<?= $f['year'] ?>">View</a>
+                  <a class="file-link" href="export_file.php?title=<?= urlencode($f['title']) ?>&year=<?= $f['year'] ?>">Export</a>
                 </div>
               </div>
             <?php endforeach; ?>
           <?php else: ?>
-            <p style="color:#888;">No approved reports found</p>
+            <p style="color:#888;">No approved reports found for 2025</p>
           <?php endif; ?>
         </div>
       </main>

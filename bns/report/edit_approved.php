@@ -345,12 +345,10 @@ function copyTitle() {
     <!-- PAGE 3 -->
     <div class="document">
         <table>
-        <thead>
-        <tr>
-            <th>Indicator</th>
-            <th>Number / %</th>
-        </tr>
-        </thead>
+  <colgroup>
+    <col style="width: auto;">
+    <col style="width: 180px;"> 
+  </colgroup>
         <tbody>
     <tr>
       <td>30. Type of dwelling unit</td>
