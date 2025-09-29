@@ -11,9 +11,14 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 
-// --- Fetch approved reports (grouped by title + year) ---
+// --- Fetch approved reports (grouped by title + year, include latest report ID) ---
 $stmt = $pdo->prepare("
-    SELECT b.title, b.year, COUNT(r.id) as total_reports, MAX(r.report_date) as latest_date
+    SELECT 
+        b.title, 
+        b.year, 
+        COUNT(r.id) AS total_reports, 
+        MAX(r.report_date) AS latest_date,
+        MAX(r.id) AS latest_report_id
     FROM reports r
     JOIN bns_reports b ON b.report_id = r.id
     WHERE r.status = 'Approved'
@@ -25,6 +30,7 @@ $stmt = $pdo->prepare("
 $stmt->execute([':user_id' => $userId]);
 $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -64,6 +70,7 @@ $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <div class="body-layout">
       <main class="content">
+        
         <!-- ✅ Toolbar -->
         <div class="toolbar">
           <div class="toolbar-left">
@@ -90,8 +97,8 @@ $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
                   <div class="file-meta"><?= $f['total_reports'] ?> reports • Latest: <?= date("M j, Y", strtotime($f['latest_date'])) ?></div>
                 </div>
                 <div class="file-actions">
-                  <a class="file-link" href="report/barangay_data.php?title=<?= urlencode($f['title']) ?>&year=<?= $f['year'] ?>">View</a>
-                  <a class="file-link" href="export_file.php?title=<?= urlencode($f['title']) ?>&year=<?= $f['year'] ?>">Export</a>
+<a class="file-link" href="report/barangay_data.php?id=<?= $f['latest_report_id'] ?>">View</a>
+<a class="file-link" href="export_file.php?id=<?= $f['latest_report_id'] ?>">Export</a>
                 </div>
               </div>
             <?php endforeach; ?>
