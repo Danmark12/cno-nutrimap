@@ -8,20 +8,20 @@ if ($report_id <= 0) {
     die("Report not found!");
 }
 
-// --- Fetch approved report with its BNS data ---
+// --- Fetch report with its BNS data (Approved OR Archived) ---
 $stmt = $pdo->prepare("
     SELECT r.id AS reports_id, r.status, r.report_date, r.report_time,
            b.barangay, b.year, b.title, b.*
     FROM reports r
     JOIN bns_reports b ON b.report_id = r.id
-    WHERE r.id = :id AND r.status = 'Approved'
+    WHERE r.id = :id AND r.status IN ('Approved','Archived')
     LIMIT 1
 ");
 $stmt->execute(['id' => $report_id]);
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$row) {
-    die("No approved BNS report found for this barangay.");
+    die("No BNS report found for this barangay or report is not available.");
 }
 
 $has_bns = true; // ✅ We only display when BNS data exists
@@ -60,6 +60,7 @@ function val($arr, $k, $fmt = null) {
 }
 
 $barangay_logo = getBarangayLogo($row['barangay']);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">

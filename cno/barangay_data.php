@@ -8,6 +8,18 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// ✅ Handle archive action
+if (isset($_GET['archive_id']) && is_numeric($_GET['archive_id'])) {
+    $reportId = (int)$_GET['archive_id'];
+
+    // ✅ Update status to Archived only if currently Approved
+    $stmt = $pdo->prepare("UPDATE reports SET prev_status = status, status = 'Archived' WHERE id = ? AND status = 'Approved'");
+    $stmt->execute([$reportId]);
+
+    header("Location: barangay_data.php");
+    exit();
+}
+
 // --- Filters ---
 $search = $_GET['search'] ?? '';
 $barangay_filter = $_GET['barangay'] ?? '';
@@ -84,6 +96,8 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
     .export-link:hover { text-decoration:underline; }
     .btn-export { background:#009688; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; }
     .btn-export:hover { background:#00796b; }
+    .archive-link { color:#dc3545; font-weight:bold; text-decoration:none; }
+    .archive-link:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
@@ -161,6 +175,9 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="card-right">
                       <div><?= date("M d, Y", strtotime($row['report_date'])) ?></div>
                       <a href="view_barangay.php?id=<?= $row['id'] ?>" class="export-link">View</a>
+                      <a href="barangay_data.php?archive_id=<?= $row['id'] ?>" class="archive-link" onclick="return confirm('Are you sure you want to archive this file?')">
+                        <i class="fa fa-archive"></i> Archive
+                      </a>
                     </div>
                   </div>
         <?php   }
