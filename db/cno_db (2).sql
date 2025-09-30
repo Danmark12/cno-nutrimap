@@ -363,3 +363,11 @@ COMMIT;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 
 ALTER TABLE users ADD COLUMN status ENUM('Active','Inactive') DEFAULT 'Active';
+
+
+
+
+-- this is important for export pdf
+-- composer require dompdf/dompdf
+-- composer require tecnickcom/tcpdf
+

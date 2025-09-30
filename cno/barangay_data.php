@@ -144,15 +144,6 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <button type="submit" style="display:none;"></button>
     </form>
 
-    <!-- ✅ Export Button (only if barangay + year selected) -->
-    <?php if ($barangay_filter && $year_filter): ?>
-      <form method="post" action="export_barangay.php" style="margin-bottom:15px;">
-        <input type="hidden" name="barangay" value="<?= htmlspecialchars($barangay_filter) ?>">
-        <input type="hidden" name="year" value="<?= htmlspecialchars($year_filter) ?>">
-        <button type="submit" class="btn-export"><i class="fas fa-file-pdf"></i> Export Barangay File</button>
-      </form>
-    <?php endif; ?>
-
     <!-- Cards -->
     <?php if ($reports): ?>
       <?php
@@ -175,6 +166,8 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="card-right">
                       <div><?= date("M d, Y", strtotime($row['report_date'])) ?></div>
                       <a href="view_barangay.php?id=<?= $row['id'] ?>" class="export-link">View</a>
+                      <!-- ✅ Export Button beside Archive -->
+                      <a href="export_bns.php?id=<?= $row['id'] ?>" class="export-link"><i class="fa fa-file-export"></i> Export</a>
                       <a href="barangay_data.php?archive_id=<?= $row['id'] ?>" class="archive-link" onclick="return confirm('Are you sure you want to archive this file?')">
                         <i class="fa fa-archive"></i> Archive
                       </a>
