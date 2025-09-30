@@ -55,8 +55,12 @@ $user_barangay = $user ? htmlspecialchars($user['barangay']) : "";
 .sideMenu-footer { margin-top: auto; padding: 0 20px 15px 20px; }
 .user-info {
   display: flex; align-items: center; gap: 12px;
-  margin-bottom: 10px; padding-bottom: 10px;
-  border-bottom: 1px solid #e0e0e0; cursor: pointer;
+  margin-bottom: 10px; padding: 10px;
+  border: 1px solid transparent; border-radius: 6px;
+  cursor: pointer; transition: background 0.2s, border 0.2s;
+}
+.user-info:hover {
+  background: #f5f5f5; border: 1px solid #ddd;
 }
 .user-info img {
   width: 40px; height: 40px;
@@ -94,7 +98,7 @@ $user_barangay = $user ? htmlspecialchars($user['barangay']) : "";
   <ul class="menu-links">
     <li data-url="home.php"><i class="fa fa-home"></i> Home</li>
     <li data-url="reports.php"><i class="fa fa-file-alt"></i> Reports</li>
-        <li data-url="barangay_data.php"><i class="fa fa-history"></i> Barangay Data</li>
+    <li data-url="barangay_data.php"><i class="fa fa-history"></i> Barangay Data</li>
     <li data-url="consolidated.php"><i class="fa fa-heartbeat"></i> Consolidated Data</li>
     <li data-url="nutritional_map.php"><i class="fa fa-map-marked-alt"></i> Nutritional Map</li>
     <li data-url="users.php"><i class="fa fa-users"></i> Users</li>

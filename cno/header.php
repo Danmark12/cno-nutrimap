@@ -124,14 +124,16 @@ document.getElementById('menuBtn').addEventListener('click', async () => {
   }
 });
 
-// ✅ Function to attach listeners (menu links, close button, settings)
+// ✅ Function to attach listeners (menu links, close button, settings, profile)
 function attachSideMenuListeners() {
   const menu = document.getElementById('sideMenu');
   if (!menu) return;
 
+  // Close button
   const closeBtn = menu.querySelector('.close-btn');
   if (closeBtn) closeBtn.addEventListener('click', () => menu.classList.remove('open'));
 
+  // Menu items
   const menuItems = menu.querySelectorAll('.menu-links li[data-url]');
   menuItems.forEach(item => {
     item.addEventListener('click', () => {
@@ -141,11 +143,13 @@ function attachSideMenuListeners() {
     });
   });
 
+  // Footer links
   const footerLinks = menu.querySelectorAll('.footer-links > a');
   footerLinks.forEach(link => {
     link.addEventListener('click', () => menu.classList.remove('open'));
   });
 
+  // Settings dropdown
   const settingsBtn = menu.querySelector('#settingsBtn');
   const settingsMenu = menu.querySelector('#settingsMenu');
   if (settingsBtn && settingsMenu) {
@@ -160,6 +164,14 @@ function attachSideMenuListeners() {
         settingsMenu.style.display = 'none';
         settingsBtn.classList.remove('open');
       }
+    });
+  }
+
+  // ✅ User profile button
+  const userProfileBtn = menu.querySelector('#userProfileBtn');
+  if (userProfileBtn) {
+    userProfileBtn.addEventListener('click', () => {
+      window.location.href = 'profile.php';
     });
   }
 }
