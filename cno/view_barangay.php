@@ -381,10 +381,6 @@ $barangay_logo = getBarangayLogo($row['barangay']);
   <div class="document">
   <table>
   <thead>
-  <tr>
-    <th>Indicator</th>
-    <th>Number / %</th>
-  </tr>
   </thead>
   <tbody>
   <tr>

@@ -333,11 +333,7 @@ $i='a'; foreach($h as $label): ?>
 <div class="document">
 <table>
 <thead>
-<tr>
-  <th>Indicator</th>
-  <th>Number / %</th>
-</tr>
-</thead>
+
 <tbody>
 <tr>
   <td>30. Type of dwelling unit</td>
