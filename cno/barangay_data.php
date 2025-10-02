@@ -8,6 +8,9 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// ✅ Set Philippine Timezone
+date_default_timezone_set('Asia/Manila');
+
 // ✅ Handle archive action
 if (isset($_GET['archive_id']) && is_numeric($_GET['archive_id'])) {
     $reportId = (int)$_GET['archive_id'];
@@ -64,7 +67,16 @@ if ($sort === 'name') {
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// ✅ Convert UTC → Asia/Manila when displaying
+foreach ($reports as &$report) {
+    $utc = new DateTime($report['report_date'] . ' ' . $report['report_time'], new DateTimeZone('UTC'));
+    $utc->setTimezone(new DateTimeZone('Asia/Manila'));
+    $report['formatted_datetime'] = $utc->format("M d, Y h:i A"); // Example: Oct 01, 2025 11:00 AM
+}
+unset($report);
 ?>
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -158,13 +170,16 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo "<div class='barangay-title'>" . htmlspecialchars($brgy) . "</div>";
             foreach ($years as $yr => $rows) {
                 echo "<div class='year-title'>Year $yr</div>";
-                foreach ($rows as $row) { ?>
+                foreach ($rows as $row) { 
+                    // ✅ Combine date + time (Philippines)
+                    $datetime = date("M d, Y h:i A", strtotime($row['report_date'].' '.$row['report_time']));
+                    ?>
                   <div class="card">
                     <div class="card-title">
                       <?= htmlspecialchars($row['title']) ?>
                     </div>
                     <div class="card-right">
-                      <div><?= date("M d, Y", strtotime($row['report_date'])) ?></div>
+                      <div><?= $datetime ?></div>
                       <a href="view_barangay.php?id=<?= $row['id'] ?>" class="export-link">View</a>
                       <!-- ✅ Export Button beside Archive -->
                       <a href="export_bns.php?id=<?= $row['id'] ?>" class="export-link"><i class="fa fa-file-export"></i> Export</a>

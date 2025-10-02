@@ -8,6 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['rep
     $action = $_POST['action'];
 
     if (in_array($action, ['Approved', 'Rejected'])) {
+        // ✅ Update report status
         $update = $pdo->prepare("UPDATE reports SET status = :status WHERE id = :id");
         $update->execute([
             ':status' => $action,
@@ -17,8 +18,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['rep
         // ✅ Log activity
         if (isset($_SESSION['user_id'])) {
             $userId = $_SESSION['user_id'];
+
+            // Get admin name
+            $adminStmt = $pdo->prepare("SELECT CONCAT(first_name, ' ', last_name) AS fullname FROM users WHERE id = ?");
+            $adminStmt->execute([$userId]);
+            $adminName = $adminStmt->fetchColumn();
+
             $logStmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action, created_at) VALUES (?, ?, NOW())");
             $logStmt->execute([$userId, "$action report ID: $reportId"]);
+
+            // ✅ Get report owner (BNS user)
+            $ownerStmt = $pdo->prepare("SELECT user_id FROM reports WHERE id = ?");
+            $ownerStmt->execute([$reportId]);
+            $reportOwnerId = $ownerStmt->fetchColumn();
+
+            if ($reportOwnerId) {
+                // ✅ Insert notification for BNS user
+                $notifMessage = "Your report (ID: $reportId) has been $action by Admin $adminName.";
+                $notifLink = "view_report.php?id=" . $reportId;
+
+                $notifStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, link, is_read, created_at) VALUES (?, ?, ?, 0, NOW())");
+                $notifStmt->execute([$reportOwnerId, $notifMessage, $notifLink]);
+            }
         }
 
     } elseif ($action === 'View') {

@@ -8,43 +8,64 @@ $pdo->exec("
     id INT AUTO_INCREMENT PRIMARY KEY,
     year YEAR NOT NULL,
     file_name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )
 ");
 
-// ✅ Auto-generate consolidated file when there are approved reports
-$currentYear = date('Y');
-
-// Check if consolidated file exists for this year
-$stmt = $pdo->prepare("SELECT * FROM consolidated_reports WHERE year = ?");
-$stmt->execute([$currentYear]);
-$consolidated = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$consolidated) {
-    $fileName = "consolidated_health_nutrition_{$currentYear}.json";
+// ✅ Function: regenerate consolidated file for a given year
+function regenerateConsolidatedFile($pdo, $year) {
+    $fileName = "consolidated_health_nutrition_{$year}.json";
 
     $reportsStmt = $pdo->prepare("
         SELECT r.id, r.report_date, r.report_time, r.status,
-               u.first_name, u.last_name, u.barangay, b.title, b.year
+               u.first_name, u.last_name, u.barangay, b.title, b.year, b.*
         FROM reports r
         JOIN users u ON r.user_id = u.id
         JOIN bns_reports b ON b.report_id = r.id
         WHERE r.status = 'Approved' AND b.year = ?
     ");
-    $reportsStmt->execute([$currentYear]);
+    $reportsStmt->execute([$year]);
     $reports = $reportsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!is_dir("../exports")) {
+        mkdir("../exports", 0777, true);
+    }
 
     file_put_contents("../exports/$fileName", json_encode($reports, JSON_PRETTY_PRINT));
 
-    $insert = $pdo->prepare("INSERT INTO consolidated_reports (year, file_name) VALUES (?, ?)");
-    $insert->execute([$currentYear, $fileName]);
+    // ✅ Insert or update consolidated_reports table
+    $checkStmt = $pdo->prepare("SELECT id FROM consolidated_reports WHERE year = ?");
+    $checkStmt->execute([$year]);
+    $exists = $checkStmt->fetchColumn();
+
+    if ($exists) {
+        $update = $pdo->prepare("UPDATE consolidated_reports SET file_name = ? WHERE year = ?");
+        $update->execute([$fileName, $year]);
+    } else {
+        $insert = $pdo->prepare("INSERT INTO consolidated_reports (year, file_name) VALUES (?, ?)");
+        $insert->execute([$year, $fileName]);
+    }
+}
+
+// ✅ Find all distinct years with Approved reports
+$yearsStmt = $pdo->query("
+    SELECT DISTINCT b.year 
+    FROM reports r
+    JOIN bns_reports b ON b.report_id = r.id
+    WHERE r.status = 'Approved'
+");
+$years = $yearsStmt->fetchAll(PDO::FETCH_COLUMN);
+
+// ✅ Regenerate consolidated files for each year
+foreach ($years as $yr) {
+    regenerateConsolidatedFile($pdo, $yr);
 }
 
 // ✅ Fetch all consolidated files for listing
 $stmt = $pdo->query("SELECT * FROM consolidated_reports ORDER BY year DESC");
 $consolidatedFiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -56,55 +77,13 @@ $consolidatedFiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
     body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; }
     .layout { display:flex; flex-direction:column; height:100vh; }
     .content { flex:1; padding:20px; }
-
     h2 { font-size:20px; font-weight:bold; margin:0; }
-
-    /* Toolbar Card */
-    .toolbar-card {
-      background:#fff;
-      border-radius:12px;
-      padding:15px 20px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      box-shadow:0 2px 8px rgba(0,0,0,0.1);
-      margin-bottom:20px;
-    }
-    .toolbar-left {
-      display:flex;
-      align-items:center;
-      gap:15px;
-    }
-    .toolbar-left input[type="text"] {
-      padding:6px 10px;
-      border:1px solid #ccc;
-      border-radius:6px;
-      min-width:200px;
-    }
-    .toolbar-right {
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .toolbar-right select {
-      padding:6px 10px;
-      border:1px solid #ccc;
-      border-radius:6px;
-      background:white;
-      cursor:pointer;
-    }
-
-    /* File list */
-    .file-card {
-      background:#fff;
-      border-radius:12px;
-      padding:15px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      box-shadow:0 2px 8px rgba(0,0,0,0.1);
-      margin-bottom:10px;
-    }
+    .toolbar-card { background:#fff; border-radius:12px; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.1); margin-bottom:20px; }
+    .toolbar-left { display:flex; align-items:center; gap:15px; }
+    .toolbar-left input[type="text"] { padding:6px 10px; border:1px solid #ccc; border-radius:6px; min-width:200px; }
+    .toolbar-right { display:flex; align-items:center; gap:8px; }
+    .toolbar-right select { padding:6px 10px; border:1px solid #ccc; border-radius:6px; background:white; cursor:pointer; }
+    .file-card { background:#fff; border-radius:12px; padding:15px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.1); margin-bottom:10px; }
     .file-card span { font-size:14px; color:#333; }
     .export-btn { color:#009688; font-weight:bold; text-decoration:none; }
   </style>
@@ -112,9 +91,7 @@ $consolidatedFiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <body>
   <div class="layout">
     <?php include 'header.php'; ?>
-    
     <div class="content">
-      <!-- Toolbar inside a card -->
       <div class="toolbar-card">
         <div class="toolbar-left">
           <h2>Consolidated Data</h2>
@@ -129,7 +106,6 @@ $consolidatedFiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
       </div>
 
-      <!-- File Cards -->
       <?php foreach ($consolidatedFiles as $file): ?>
         <div class="file-card">
           <span>
@@ -139,7 +115,9 @@ $consolidatedFiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </a>
           </span>
           <div>
-            <span><?= date("m-d-Y", strtotime($file['created_at'])) ?></span>
+            <span>
+              <?= isset($file['updated_at']) ? date("m-d-Y", strtotime($file['updated_at'])) : date("m-d-Y") ?>
+            </span>
             &nbsp; | &nbsp;
             <a class="export-btn" href="../exports/<?= htmlspecialchars($file['file_name']) ?>" download>Export</a>
           </div>

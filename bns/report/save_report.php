@@ -84,8 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute($fields);
 
     // 🔹 Update report status to Pending
-    $stmt = $pdo->prepare("UPDATE reports SET status = 'Pending' WHERE id = :id");
-    $stmt->execute(['id' => $reportId]);
+    $stmt = $pdo->prepare("UPDATE reports SET status = 'Pending', prev_status = NULL WHERE id = :id");
+    $stmt->execute(['id' => $reportId]); // ✅ prev_status=NULL triggers CNO notification
 
     // 🔹 Log the activity
     $logStmt = $pdo->prepare("
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ");
     $logStmt->execute([
         ':user_id' => $_SESSION['user_id'],
-        ':action'  => 'Report Updated',
+        ':action'  => 'Report Updated / Saved Changes',
         ':details' => "Report ID {$reportId} was edited and reset to Pending"
     ]);
 

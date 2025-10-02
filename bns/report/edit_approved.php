@@ -82,8 +82,6 @@ if (isset($_SESSION['user_id'])) {
     logActivity($pdo, $_SESSION['user_id'], "Viewed report (ID: $reportId, Title: $reportTitle)");
 }
 ?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -143,7 +141,6 @@ function copyTitle() {
 </div>
 <?php endif; ?>
 
-<!-- Single Form for All Pages -->
 <form action="update_report.php" method="post" onsubmit="copyTitle()">
     <input type="hidden" name="report_id" value="<?= $reportId ?>">
     <input type="hidden" id="hidden-title" name="title">

@@ -1,21 +1,24 @@
 <?php
-// view_report.php
+// view_consolidated.php
 session_start();
 require '../db/config.php'; // PDO connection
 
-// ✅ Fetch all Approved reports with BNS data
+// ✅ Get year from query param
+$year = isset($_GET['year']) ? (int) $_GET['year'] : date('Y');
+
+// ✅ Fetch all Approved reports for that year with BNS data
 $stmt = $pdo->prepare("
     SELECT r.id AS reports_id, r.report_date, r.report_time, r.status, b.*
     FROM reports r
     LEFT JOIN bns_reports b ON b.report_id = r.id
-    WHERE r.status = 'Approved'
-    ORDER BY b.year DESC, r.id ASC
+    WHERE r.status = 'Approved' AND b.year = ?
+    ORDER BY r.id ASC
 ");
-$stmt->execute();
+$stmt->execute([$year]);
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (!$reports) {
-    die("No approved reports found for consolidation!");
+    die("<h3>No approved reports found for consolidation in year {$year}!</h3>");
 }
 
 // ✅ Consolidate all BNS data into one row (sum numeric indicators)
@@ -26,7 +29,7 @@ foreach ($reports as $r) {
         if (preg_match('/^ind\d+/', $key) || preg_match('/^ind\d+[a-z]\d*_no$/', $key)) {
             $consolidated[$key] = ($consolidated[$key] ?? 0) + ((is_numeric($value)) ? $value : 0);
         } else {
-            // For non-numeric, just keep the first value (e.g., year)
+            // For non-numeric, just keep the first value (e.g., year, title)
             if (!isset($consolidated[$key])) {
                 $consolidated[$key] = $value;
             }
@@ -46,7 +49,6 @@ function val($arr, $k, $fmt = null) {
     return htmlspecialchars($v);
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>

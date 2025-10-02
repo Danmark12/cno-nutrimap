@@ -14,8 +14,8 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 
 $reportId = (int) $_GET['id'];
 
-// 🔹 Update report status back to Pending (or Approved if needed)
-$updateStmt = $pdo->prepare("UPDATE reports SET status = 'Pending' WHERE id = ?");
+// 🔹 Restore report to its previous status (Approved or Pending)
+$updateStmt = $pdo->prepare("UPDATE reports SET status = prev_status, prev_status = NULL WHERE id = ?");
 $updateStmt->execute([$reportId]);
 
 // ✅ Log the activity (only if user is logged in)

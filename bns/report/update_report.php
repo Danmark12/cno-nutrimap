@@ -33,7 +33,6 @@ try {
     $stmt = $pdo->prepare("SELECT * FROM bns_reports WHERE report_id = :report_id");
     $stmt->execute(['report_id' => $reportId]);
     $oldBns = $stmt->fetch(PDO::FETCH_ASSOC);
-
     if (!$oldBns) throw new Exception("BNS data not found");
 
     // 2️⃣ Create new pending report
@@ -48,26 +47,40 @@ try {
     ]);
     $newReportId = $pdo->lastInsertId();
 
-    // 3️⃣ Prepare new BNS data from form
-    $bnsFields = $oldBns; // start with old data
+    // 3️⃣ Prepare new BNS data
+    $bnsFields = $oldBns;
 
     // Overwrite with submitted values
     foreach ($_POST as $key => $value) {
-        if ($key !== 'report_id' && $key !== 'title_display') { // skip report_id
+        if ($key !== 'report_id' && $key !== 'title_display') {
             $bnsFields[$key] = $value;
         }
     }
+
+    // Force correct values
     $bnsFields['report_id'] = $newReportId;
     $bnsFields['title'] = $_POST['title'] ?? ($oldBns['title'] ?? '');
 
-    // Remove old id to allow auto-increment
+    // Remove auto fields
     unset($bnsFields['id']);
 
-    // 4️⃣ Insert new BNS report
-    $columns = implode(',', array_keys($bnsFields));
-    $placeholders = ':' . implode(',:', array_keys($bnsFields));
-    $stmt = $pdo->prepare("INSERT INTO bns_reports ($columns) VALUES ($placeholders)");
-    $stmt->execute($bnsFields);
+    // ✅ Build SQL dynamically with correct placeholders
+    $columns = array_keys($bnsFields);
+    $placeholders = array_map(fn($c) => ':' . $c, $columns);
+    $sql = "INSERT INTO bns_reports (" . implode(',', $columns) . ") VALUES (" . implode(',', $placeholders) . ")";
+
+    // Ensure array keys have `:` prefix
+    $params = [];
+    foreach ($bnsFields as $col => $val) {
+        $params[":" . $col] = $val;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+
+    // 🔔 Set prev_status = NULL so CNO receives notification
+    $stmt = $pdo->prepare("UPDATE reports SET prev_status = NULL WHERE id = :id");
+    $stmt->execute(['id' => $newReportId]);
 
     $pdo->commit();
 

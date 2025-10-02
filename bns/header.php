@@ -192,6 +192,3 @@ document.getElementById('menuBtn').addEventListener('click', async () => {
   if (menu) menu.classList.add('open');
 });
 </script>
-
-
-
