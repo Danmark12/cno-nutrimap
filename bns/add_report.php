@@ -1,7 +1,7 @@
 <?php
 session_start();
 require '../db/config.php';
-require_once '../otp/mailer.php'; // ✅ include mailer functions
+require_once '../otp/mailer.php'; // ✅ include mailer if needed
 
 // ✅ Require login
 if (!isset($_SESSION['user_id'])) {
@@ -36,7 +36,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             ':report_time' => date('H:i:s'),
             ':report_date' => date('Y-m-d')
         ]);
-        // Get the inserted report ID
         $report_id = $pdo->lastInsertId();
 
         // 2️⃣ Prepare data for bns_reports
@@ -57,9 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             'ind28a_no','ind28a_pct','ind28b_no','ind28b_pct','ind28c_no','ind28c_pct','ind28d_no','ind28d_pct','ind28e_no','ind28e_pct',
             'ind29a_no','ind29a_pct','ind29b_no','ind29b_pct','ind29c_no','ind29c_pct','ind29d_no','ind29d_pct','ind29e_no','ind29e_pct',
             'ind30a_no','ind30a_pct','ind30b_no','ind30b_pct','ind30c_no','ind30c_pct','ind30d_no','ind30d_pct','ind30e_no','ind30e_pct',
-            'ind31','ind32','ind33','ind34',
-            'ind35a','ind35b',
-            'ind36'
+            'ind31','ind32','ind33','ind34','ind35a','ind35b','ind36'
         ];
 
         $placeholders = [];
@@ -67,8 +64,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         foreach ($fields as $f) {
             $placeholders[] = ':' . $f;
-
-            // report_id is from $report_id, others from POST
             if ($f === 'report_id') {
                 $params[':' . $f] = $report_id;
             } elseif ($f === 'barangay') {
@@ -82,7 +77,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
         }
 
-        // Prepare and execute insert
         $sql = "INSERT INTO bns_reports (" . implode(',', $fields) . ") 
                 VALUES (" . implode(',', $placeholders) . ")";
         $stmt2 = $pdo->prepare($sql);
@@ -99,32 +93,46 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             ':details' => "Report ID $report_id created for Barangay $barangay, Year $year with title '$title'"
         ]);
 
-        // 4️⃣ Send email notification to user
-        $stmtUser = $pdo->prepare("SELECT email FROM users WHERE id = :id");
-        $stmtUser->execute([':id' => $user_id]);
-        $user = $stmtUser->fetch(PDO::FETCH_ASSOC);
+        // 4️⃣ Send system notification to CNO
+        $stmt = $pdo->prepare("
+            SELECT u.id, u.email, u.first_name, u.last_name
+            FROM users u
+            WHERE u.user_type = 'CNO'
+            LIMIT 1
+        ");
+        $stmt->execute();
+        $cnoUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($user && !empty($user['email'])) {
-            $subject = "Report Submitted Successfully - CNO NutriMap";
-            $message = "
-                Hello,<br><br>
-                Your report titled <strong>" . htmlspecialchars($title) . "</strong> 
-                has been successfully submitted.<br><br>
-                Report ID: <strong>$report_id</strong><br>
-                Barangay: <strong>$barangay</strong><br>
-                Year: <strong>$year</strong><br><br>
-                You can view your report here: 
-                <a href='http://localhost/nutrimap/bns/view_report.php?id=$report_id'>View Report</a><br><br>
-                Best regards,<br>
-                The CNO NutriMap Team
-            ";
-            sendEmailNotification($user['email'], $subject, $message);
+        if ($cnoUser) {
+            $notifStmt = $pdo->prepare("
+                INSERT INTO notifications (user_id, message, link, is_read, created_at)
+                VALUES (:user_id, :message, :link, 0, NOW())
+            ");
+            $message = "A new report titled <strong>{$title}</strong> has been submitted and is pending your review.";
+            $link = "/bns/reports.php?id={$report_id}";
+            $notifStmt->execute([
+                ':user_id' => $cnoUser['id'],
+                ':message' => $message,
+                ':link' => $link
+            ]);
+
+            // Optional: also send email
+            if (!empty($cnoUser['email'])) {
+                $subject = "New Report Submitted - Pending Review";
+                $senderName = htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name'] ?? '');
+                $emailMsg = "
+                    Hello,<br><br>
+                    A report titled <strong>$title</strong> has been submitted by <strong>$senderName</strong> 
+                    and is now pending your review.<br><br>
+                    <strong>Date:</strong> " . date('Y-m-d') . "<br><br>
+                    Please review it in the system.
+                ";
+                sendEmailNotification($cnoUser['email'], $subject, $emailMsg);
+            }
         }
 
-        // Commit transaction
         $pdo->commit();
 
-        // ✅ Redirect with success message
         $_SESSION['success'] = "Report and barangay data submitted successfully.";
         header("Location: home.php");
         exit();
