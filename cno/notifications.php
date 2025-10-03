@@ -58,6 +58,8 @@ foreach ($notifications as $n) {
 <meta charset="UTF-8">
 <title>Notifications - CNO NutriMap</title>
 <link rel="stylesheet" href="../assets/fontawesome/css/all.min.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
 body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
 .container { max-width: 800px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -95,7 +97,8 @@ body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 
 </style>
 </head>
 <body>
-
+  <div class="layout">
+    <?php include 'header.php'; ?>
 
 <div class="container">
     <div class="header">

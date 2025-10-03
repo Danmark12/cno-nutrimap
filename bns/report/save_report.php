@@ -1,6 +1,7 @@
 <?php
 session_start();
 require '../../db/config.php';
+require_once '../../otp/mailer.php'; // ✅ include mailer
 
 // ✅ Require login
 if (!isset($_SESSION['user_id'])) {
@@ -97,6 +98,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ':action'  => 'Report Updated / Saved Changes',
         ':details' => "Report ID {$reportId} was edited and reset to Pending"
     ]);
+
+    // 📧 Send email notification (to CNO or Admin) with report title and sender
+    $stmt = $pdo->prepare("
+        SELECT u.email, u.first_name, u.last_name
+        FROM users u
+        WHERE u.user_type = 'CNO'
+        LIMIT 1
+    ");
+    $stmt->execute();
+    $cnoUser = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($cnoUser && !empty($cnoUser['email'])) {
+        $to = $cnoUser['email'];
+        $subject = "Report Updated - Pending Review";
+
+        $reportTitle = htmlspecialchars($fields['title']);
+        
+        // Get sender name from users table
+        $userStmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
+        $userStmt->execute(['id' => $_SESSION['user_id']]);
+        $sender = $userStmt->fetch(PDO::FETCH_ASSOC);
+        $senderName = $sender ? htmlspecialchars($sender['first_name'] . ' ' . $sender['last_name']) : 'Unknown';
+
+        $message = "
+            Hello,<br><br>
+            A report titled <strong>$reportTitle</strong> has been updated by <strong>$senderName</strong> 
+            and is now pending your review.<br><br>
+            <strong>Date:</strong> " . date('Y-m-d') . "<br><br>
+            Please review it in the system.
+        ";
+
+        sendEmailNotification($to, $subject, $message);
+    } else {
+        error_log("DEBUG: No CNO user found or email is empty");
+    }
 
     // 🔹 Redirect
     header("Location: ../reports.php?id=$reportId&msg=updated");

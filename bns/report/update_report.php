@@ -1,6 +1,7 @@
 <?php
 session_start();
 require '../../db/config.php';
+require_once '../../otp/mailer.php'; // ✅ include mailer
 
 // ✅ Require login
 if (!isset($_SESSION['user_id'])) {
@@ -91,6 +92,36 @@ try {
         "Updated report (cloned as Pending)",
         "Old Report ID: $reportId → New Report ID: $newReportId"
     );
+
+    // 📧 Send email notification (to CNO or Admin) with report title and sender
+    $stmt = $pdo->prepare("
+        SELECT u.email, u.first_name, u.last_name 
+        FROM users u
+        WHERE u.user_type = 'CNO' 
+        LIMIT 1
+    ");
+    $stmt->execute();
+    $cnoUser = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($cnoUser && !empty($cnoUser['email'])) {
+        $to = $cnoUser['email'];
+        $subject = "Report Updated - Pending Review";
+
+        $reportTitle = htmlspecialchars($bnsFields['title']);
+        $senderName = htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name'] ?? ''); // user who submitted
+
+        $message = "
+            Hello,<br><br>
+            A report titled <strong>$reportTitle</strong> has been updated by <strong>$senderName</strong> 
+            and is now pending your review.<br><br>
+            <strong>Date:</strong> " . date('Y-m-d') . "<br><br>
+            Please review it in the system.
+        ";
+
+        sendEmailNotification($to, $subject, $message);
+    } else {
+        error_log("DEBUG: No CNO user found or email is empty");
+    }
 
     header("Location: ../reports.php?id=$newReportId&msg=Report updated as Pending");
     exit();

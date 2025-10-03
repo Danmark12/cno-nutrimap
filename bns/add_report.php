@@ -1,6 +1,7 @@
 <?php
 session_start();
 require '../db/config.php';
+require_once '../otp/mailer.php'; // ✅ include mailer functions
 
 // ✅ Require login
 if (!isset($_SESSION['user_id'])) {
@@ -97,6 +98,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             ':action' => 'Report Added',
             ':details' => "Report ID $report_id created for Barangay $barangay, Year $year with title '$title'"
         ]);
+
+        // 4️⃣ Send email notification to user
+        $stmtUser = $pdo->prepare("SELECT email FROM users WHERE id = :id");
+        $stmtUser->execute([':id' => $user_id]);
+        $user = $stmtUser->fetch(PDO::FETCH_ASSOC);
+
+        if ($user && !empty($user['email'])) {
+            $subject = "Report Submitted Successfully - CNO NutriMap";
+            $message = "
+                Hello,<br><br>
+                Your report titled <strong>" . htmlspecialchars($title) . "</strong> 
+                has been successfully submitted.<br><br>
+                Report ID: <strong>$report_id</strong><br>
+                Barangay: <strong>$barangay</strong><br>
+                Year: <strong>$year</strong><br><br>
+                You can view your report here: 
+                <a href='http://localhost/nutrimap/bns/view_report.php?id=$report_id'>View Report</a><br><br>
+                Best regards,<br>
+                The CNO NutriMap Team
+            ";
+            sendEmailNotification($user['email'], $subject, $message);
+        }
 
         // Commit transaction
         $pdo->commit();
