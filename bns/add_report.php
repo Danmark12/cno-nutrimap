@@ -151,6 +151,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <meta charset="UTF-8">
   <title>Add Report — CNO NutriMap</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
   <style>
   body { margin:0; font-family: Arial, sans-serif; background:#f5f5f5; font-size:13px; }
   .layout { display:flex; flex-direction:column; min-height:100vh; }

@@ -11,11 +11,12 @@ if ($userId && $notifId) {
         SELECT 
             n.related_id AS report_id,
             r.status,
-            br.title
+            COALESCE(br.title, CONCAT('Report #', r.id)) AS title
         FROM notifications n
         JOIN reports r ON r.id = n.related_id
         LEFT JOIN bns_reports br ON br.report_id = r.id
         WHERE n.id = :id AND n.user_id = :user_id
+        LIMIT 1
     ");
     $stmt->execute([
         ':id' => $notifId,
@@ -35,7 +36,7 @@ if ($userId && $notifId) {
             ':user_id' => $userId
         ]);
 
-        // ✅ Log that notification was read (optional)
+        // ✅ Log that notification was read
         $logStmt = $pdo->prepare("
             INSERT INTO activity_logs (user_id, action, details, created_at)
             VALUES (:user_id, :action, :details, NOW())
@@ -47,11 +48,15 @@ if ($userId && $notifId) {
         ]);
 
         // ✅ Redirect to report view page
-        header("Location: view_report.php?id=" . $notif['report_id']);
+        header("Location: view_report.php?id=" . urlencode($notif['report_id']));
+        exit;
+    } else {
+        // ⚠️ Notification not found or mismatched
+        header("Location: notifications.php?error=notfound");
         exit;
     }
 }
 
-// If not found, go back to notifications list
-header("Location: notifications.php");
+// ⚠️ If invalid session or missing ID
+header("Location: notifications.php?error=invalid");
 exit;
