@@ -269,7 +269,7 @@ function attachSideMenuListeners() {
   const userProfileBtn = menu.querySelector('#userProfileBtn');
   if (userProfileBtn) {
     userProfileBtn.addEventListener('click', () => {
-      window.location.href = 'profile.php';
+      window.location.href = '../uploads/';
     });
   }
 }
