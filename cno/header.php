@@ -184,7 +184,7 @@ $stmt = $pdo->prepare("
     <div class="notif-section">Earlier</div>
     <?php foreach ($earlierNotifs as $n): ?>
       <a href="read_notification.php?id=<?php echo $n['id']; ?>" class="notif-item <?php echo $n['is_unread'] ? 'unread' : ''; ?>">
-        <img src="../uploads/<?php echo $n['profile_photo'] ?? 'default.png'; ?>" alt="user">
+        <img src="../uploads/<?php echo $n['profile_pic'] ?? 'default.png'; ?>" alt="user">
         <div class="text">
           <strong><?php echo htmlspecialchars($n['first_name'].' '.$n['last_name']); ?></strong>
           <?php echo $n['message']; ?>
@@ -269,7 +269,7 @@ function attachSideMenuListeners() {
   const userProfileBtn = menu.querySelector('#userProfileBtn');
   if (userProfileBtn) {
     userProfileBtn.addEventListener('click', () => {
-      window.location.href = '../uploads/';
+      window.location.href = 'profile.php';
     });
   }
 }

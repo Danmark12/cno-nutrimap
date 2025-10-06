@@ -2,7 +2,6 @@
 session_start();
 require '../db/config.php';
 
-// ✅ Require login
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../auth/login.php");
     exit();
@@ -10,10 +9,21 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 
-// ✅ Handle optional messages
-$message = $_GET['msg'] ?? '';
+// 🔹 Handle Bulk Actions BEFORE fetching reports
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['restore_all'])) {
+        $pdo->exec("UPDATE reports SET status='Approved' WHERE status='Archived'");
+        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports restored");
+        exit();
+    }
+    if (isset($_POST['delete_all'])) {
+        $pdo->exec("DELETE FROM reports WHERE status='Archived'");
+        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports deleted");
+        exit();
+    }
+}
 
-// ✅ Fetch ALL archived reports (not just current user)
+// 🔹 Fetch reports AFTER bulk actions
 $stmt = $pdo->prepare("
     SELECT r.id, r.report_date, r.report_time, r.prev_status, 
            u.username, b.title, b.barangay, b.year
@@ -26,6 +36,7 @@ $stmt = $pdo->prepare("
 $stmt->execute();
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
 
 <!doctype html>
 <html lang="en">
@@ -43,7 +54,7 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
     .card { background:#fff; border:1px solid #ccc; border-radius:8px; padding:15px; margin-bottom:15px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
     .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .toolbar-left input { padding:8px 10px; border:1px solid #ccc; border-radius:6px; width:240px; }
-    .toolbar-right select { padding:8px; border:1px solid #ccc; border-radius:6px; }
+    .toolbar-right select, .toolbar-right button { padding:8px; border:1px solid #ccc; border-radius:6px; margin-left:5px; cursor:pointer; }
 
     .archive-list { display:flex; flex-direction:column; gap:8px; }
     .archive-item {
@@ -79,7 +90,7 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="body-layout">
       <div class="content">
 
-        <!-- 🔹 Search + Sort -->
+        <!-- 🔹 Search + Sort + Bulk Actions -->
         <div class="card">
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
                 <h3 style="margin:0;">Archive</h3>
@@ -93,6 +104,12 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <option value="title">A → Z</option>
                     <option value="date">Newest → Oldest</option>
                   </select>
+
+                  <!-- Bulk Actions -->
+                  <form style="display:inline;" method="post" onsubmit="return confirm('Are you sure?');">
+                    <button type="submit" name="restore_all"><i class="fa fa-undo"></i> Restore All</button>
+                    <button type="submit" name="delete_all"><i class="fa fa-trash"></i> Delete All</button>
+                  </form>
                 </div>
             </div>
         </div>
@@ -129,6 +146,22 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
       </div>
     </div>
   </div>
+
+<?php
+// 🔹 Handle Bulk Actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['restore_all'])) {
+        $pdo->exec("UPDATE reports SET status='Approved' WHERE status='Archived'");
+        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports restored");
+        exit();
+    }
+    if (isset($_POST['delete_all'])) {
+        $pdo->exec("DELETE FROM reports WHERE status='Archived'");
+        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports deleted");
+        exit();
+    }
+}
+?>
 
 <script>
 // Toggle menu
@@ -184,4 +217,3 @@ document.getElementById('sort').addEventListener('change', function() {
 </script>
 </body>
 </html>
-..

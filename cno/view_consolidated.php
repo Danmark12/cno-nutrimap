@@ -6,12 +6,18 @@ require '../db/config.php'; // PDO connection
 // ✅ Get year from query param
 $year = isset($_GET['year']) ? (int) $_GET['year'] : date('Y');
 
-// ✅ Fetch all Approved reports for that year with BNS data
+// ✅ Fetch the latest approved report per barangay (using 'barangay' column)
 $stmt = $pdo->prepare("
     SELECT r.id AS reports_id, r.report_date, r.report_time, r.status, b.*
-    FROM reports r
-    LEFT JOIN bns_reports b ON b.report_id = r.id
-    WHERE r.status = 'Approved' AND b.year = ?
+    FROM bns_reports b
+    INNER JOIN reports r ON r.id = b.report_id
+    INNER JOIN (
+        SELECT barangay, MAX(report_id) AS latest_report_id
+        FROM bns_reports
+        WHERE year = ?
+        GROUP BY barangay
+    ) latest ON b.barangay = latest.barangay AND b.report_id = latest.latest_report_id
+    WHERE r.status = 'Approved'
     ORDER BY r.id ASC
 ");
 $stmt->execute([$year]);
@@ -21,7 +27,7 @@ if (!$reports) {
     die("<h3>No approved reports found for consolidation in year {$year}!</h3>");
 }
 
-// ✅ Consolidate all BNS data into one row (sum numeric indicators)
+// ✅ Consolidate only the latest report per barangay
 $consolidated = [];
 foreach ($reports as $r) {
     foreach ($r as $key => $value) {
@@ -29,7 +35,7 @@ foreach ($reports as $r) {
         if (preg_match('/^ind\d+/', $key) || preg_match('/^ind\d+[a-z]\d*_no$/', $key)) {
             $consolidated[$key] = ($consolidated[$key] ?? 0) + ((is_numeric($value)) ? $value : 0);
         } else {
-            // For non-numeric, just keep the first value (e.g., year, title)
+            // For non-numeric, just keep the first value (e.g., year)
             if (!isset($consolidated[$key])) {
                 $consolidated[$key] = $value;
             }
@@ -37,7 +43,7 @@ foreach ($reports as $r) {
     }
 }
 
-$row = $consolidated;
+$row = $consolidated; // ✅ Use this single row for the entire document
 $has_bns = true;
 
 function val($arr, $k, $fmt = null) {
@@ -57,29 +63,13 @@ function val($arr, $k, $fmt = null) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
+/* ✅ KEEP ALL DESIGN STYLES AS-IS */
 *{box-sizing:border-box;margin:0;padding:0}
-body{
-  background:#f0f0f0;
-  font-family:"Times New Roman",serif;
-  font-size:12px;
-  line-height:1.4
-}
+body{background:#f0f0f0;font-family:"Times New Roman",serif;font-size:12px;line-height:1.4}
 .body-layout{display:flex;justify-content:center;padding:20px 0;}
 .container{max-width:1000px;width:100%;margin:0 auto;}
-.document{
-  background:#fff;
-  width:21cm;
-  min-height:33cm;
-  margin:0 auto 30px auto;
-  padding:2.5cm;
-  box-shadow:0 0 8px rgba(0,0,0,0.15);
-  position:relative;
-  page-break-after:always;
-}
-@media print {
-  body{background:#fff;}
-  .document{box-shadow:none;margin:0;width:100%;min-height:auto;padding:2cm;}
-}
+.document{background:#fff;width:21cm;min-height:33cm;margin:0 auto 30px auto;padding:2.5cm;box-shadow:0 0 8px rgba(0,0,0,0.15);position:relative;page-break-after:always;}
+@media print{body{background:#fff;}.document{box-shadow:none;margin:0;width:100%;min-height:auto;padding:2cm;}}
 .header-table{width:100%;border-collapse:collapse;margin-bottom:20px}
 .header-table td{border:none;padding:4px 6px;vertical-align:middle}
 .header-left{font-weight:bold;font-size:14px}
@@ -95,6 +85,11 @@ th{background:#ddd}
 .number-cell div:first-child {border-left:none;}
 .page-number{text-align:right;font-size:12px;color:#555;margin-top:10px}
 .notice{background:#fff3cd;padding:10px;border:1px solid #ffeeba;margin-bottom:15px}
+/* Center text of the second column in all tables */
+table td:nth-child(2) {
+    text-align: center;
+}
+/* Adjust width of the second column */
 </style>
 </head>
 <body>
@@ -103,12 +98,20 @@ th{background:#ddd}
 
 <div class="body-layout">
 <div class="container">
-
-<?php foreach ($reports as $row): 
-  $has_bns = !is_null($row['report_id']);
-?>
-
-<!-- ✅ BEGIN REPORT DOCUMENT -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+    <h2 style="font-size:18px;">
+      <span style="font-weight:normal;">Title:</span>
+      <?= $has_bns ? htmlspecialchars($row['title']) : 'Barangay Nutrition Report' ?>
+    </h2>
+    <div>
+    <!-- ✅ Fixed Edit button link -->
+      <a href="javascript:history.back()" 
+         style="background:#6c757d;color:#fff;padding:6px 12px;border-radius:4px;text-decoration:none;">
+         <i class="fa fa-arrow-left"></i> Back
+      </a>
+    </div>
+</div>
+<!-- ✅ SINGLE CONSOLIDATED REPORT DOCUMENT -->
 <div class="document">
   <table class="header-table">
   <tr>
@@ -396,8 +399,6 @@ foreach($d as $label): ?>
 </div>
 
 
-
-<?php endforeach; ?>
 
 </div>
 </div>

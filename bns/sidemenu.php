@@ -11,13 +11,16 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// ✅ Fetch user info
-$stmt = $pdo->prepare("SELECT first_name, last_name, barangay FROM users WHERE id = ?");
+// ✅ Fetch user info including profile picture
+$stmt = $pdo->prepare("SELECT first_name, last_name, barangay, profile_pic FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 $user_name = $user ? htmlspecialchars($user['first_name'] . " " . $user['last_name']) : "Guest";
 $user_barangay = $user ? htmlspecialchars($user['barangay']) : "";
+$user_pic = $user && !empty($user['profile_pic']) 
+    ? "../uploads/" . htmlspecialchars($user['profile_pic']) 
+    : "../uploads/profile_placeholder.png";
 ?>
 <style>
 /* Your existing CSS (unchanged) */
@@ -114,10 +117,9 @@ $user_barangay = $user ? htmlspecialchars($user['barangay']) : "";
   </ul>
 
   <div class="divider"></div>
-
   <div class="sideMenu-footer">
     <div class="user-info" id="userProfileBtn">
-      <img src="../uploads/profile_placeholder.png" alt="User">
+      <img src="<?php echo $user_pic; ?>" alt="User" onerror="this.src='../uploads/profile_placeholder.png'">
       <span><?php echo $user_name; ?></span>
     </div>
     <div class="footer-links">

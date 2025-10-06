@@ -230,8 +230,8 @@ $inactiveUsers = $inactiveUsersStmt->fetchAll(PDO::FETCH_ASSOC);
                     <td class="action-wrapper">
                       <button class="action-btn" onclick="toggleDropdown(<?= $user['id'] ?>)">⋮</button>
                       <div class="dropdown" id="dropdown-<?= $user['id'] ?>">
-                        <a href="view_profile.php?id=<?= $user['id'] ?>"><i class="fa fa-user"></i> View Profile</a>
-<a href="user/deactivate_user.php?id=<?= $user['id'] ?>"><i class="fa fa-ban"></i> Deactivate</a>                      </div>
+                        <a href="profile.php?id=<?= $user['id'] ?>"><i class="fa fa-user"></i> View Profile</a>
+                       <a href="user/deactivate_user.php?id=<?= $user['id'] ?>"><i class="fa fa-ban"></i> Deactivate</a>                      </div>
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -270,7 +270,7 @@ $inactiveUsers = $inactiveUsersStmt->fetchAll(PDO::FETCH_ASSOC);
                     <td class="action-wrapper">
                       <button class="action-btn" onclick="toggleDropdown(<?= $user['id'] ?>)">⋮</button>
                       <div class="dropdown" id="dropdown-<?= $user['id'] ?>">
-                        <a href="view_profile.php?id=<?= $user['id'] ?>"><i class="fa fa-user"></i> View Profile</a>
+                        <a href="profile.php?id=<?= $user['id'] ?>"><i class="fa fa-user"></i> View Profile</a>
 <a href="user/activate_user.php?id=<?= $user['id'] ?>"><i class="fa fa-check"></i> Activate</a>
                       </div>
                     </td>

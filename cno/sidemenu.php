@@ -10,12 +10,18 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-$stmt = $pdo->prepare("SELECT first_name, last_name, barangay FROM users WHERE id = ?");
+// Fetch user info including profile picture
+$stmt = $pdo->prepare("SELECT first_name, last_name, barangay, profile_pic FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 $user_name = $user ? htmlspecialchars($user['first_name'] . " " . $user['last_name']) : "Guest";
 $user_barangay = $user ? htmlspecialchars($user['barangay']) : "";
+
+// Use uploaded profile pic if exists, otherwise default avatar
+$user_profile_pic = $user && !empty($user['profile_pic']) 
+    ? "../uploads/" . htmlspecialchars($user['profile_pic']) 
+    : "../uploads/default-avatar.png"; // make sure you have this default image
 ?>
 <style>
 #sideMenu {
@@ -120,7 +126,7 @@ $user_barangay = $user ? htmlspecialchars($user['barangay']) : "";
 
   <div class="sideMenu-footer">
     <div class="user-info" id="userProfileBtn">
-      <img src="../uploads/profile_placeholder.png" alt="User">
+      <img src="<?php echo $user_profile_pic; ?>" alt="User">
       <span><?php echo $user_name; ?></span>
     </div>
     <div class="footer-links">

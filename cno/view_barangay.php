@@ -144,7 +144,19 @@ $barangay_logo = getBarangayLogo($row['barangay']);
 <?php include 'header.php'; ?>
 <div class="body-layout">
 <div class="container">
-
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+    <h2 style="font-size:18px;">
+      <span style="font-weight:normal;">Title:</span>
+      <?= $has_bns ? htmlspecialchars($row['title']) : 'Barangay Nutrition Report' ?>
+    </h2>
+    <div>
+    <!-- ✅ Fixed Edit button link -->
+      <a href="javascript:history.back()" 
+         style="background:#6c757d;color:#fff;padding:6px 12px;border-radius:4px;text-decoration:none;">
+         <i class="fa fa-arrow-left"></i> Back
+      </a>
+    </div>
+</div>
 <?php if (!$has_bns): ?>
 <div class="notice">
 <strong>Note:</strong> Report exists (ID: <?= htmlspecialchars($row['reports_id']) ?>) but no BNS data was found.

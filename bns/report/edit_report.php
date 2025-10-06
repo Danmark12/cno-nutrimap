@@ -167,7 +167,10 @@ You cannot edit this report because its status is <?= htmlspecialchars($row['sta
                        <?= !$can_edit ? 'readonly' : '' ?>>
             </div>
         </div>
-        <a href="reports_list.php" class="button-cancel top-right-button">Cancel</a>
+        <!-- ✅ Fixed Cancel Button -->
+        <div>
+            <a href="../reports.php" class="button-cancel">Cancel</a>
+        </div>
     </div>
 
     <!-- PAGE 1 -->

@@ -28,6 +28,22 @@ function regenerateConsolidatedFile($pdo, $year) {
     $reportsStmt->execute([$year]);
     $reports = $reportsStmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // ✅ If no approved reports, delete consolidated entry and file
+    if (empty($reports)) {
+        // Delete file from exports folder if exists
+        $checkStmt = $pdo->prepare("SELECT file_name FROM consolidated_reports WHERE year = ?");
+        $checkStmt->execute([$year]);
+        $oldFile = $checkStmt->fetchColumn();
+        if ($oldFile && file_exists("../exports/$oldFile")) {
+            unlink("../exports/$oldFile");
+        }
+
+        // Delete from DB table
+        $delStmt = $pdo->prepare("DELETE FROM consolidated_reports WHERE year = ?");
+        $delStmt->execute([$year]);
+        return;
+    }
+
     if (!is_dir("../exports")) {
         mkdir("../exports", 0777, true);
     }
@@ -48,12 +64,9 @@ function regenerateConsolidatedFile($pdo, $year) {
     }
 }
 
-// ✅ Find all distinct years with Approved reports
+// ✅ Find all distinct years in bns_reports
 $yearsStmt = $pdo->query("
-    SELECT DISTINCT b.year 
-    FROM reports r
-    JOIN bns_reports b ON b.report_id = r.id
-    WHERE r.status = 'Approved'
+    SELECT DISTINCT year FROM bns_reports
 ");
 $years = $yearsStmt->fetchAll(PDO::FETCH_COLUMN);
 
@@ -106,23 +119,27 @@ $consolidatedFiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
       </div>
 
-      <?php foreach ($consolidatedFiles as $file): ?>
-        <div class="file-card">
-          <span>
-            <a href="view_consolidated.php?year=<?= htmlspecialchars($file['year']) ?>" 
-               style="text-decoration:none; color:#333; font-weight:bold;">
-              Consolidated Health and Nutrition Data (<?= htmlspecialchars($file['year']) ?>)
-            </a>
-          </span>
-          <div>
+      <?php if (!empty($consolidatedFiles)): ?>
+        <?php foreach ($consolidatedFiles as $file): ?>
+          <div class="file-card">
             <span>
-              <?= isset($file['updated_at']) ? date("m-d-Y", strtotime($file['updated_at'])) : date("m-d-Y") ?>
+              <a href="view_consolidated.php?year=<?= htmlspecialchars($file['year']) ?>" 
+                 style="text-decoration:none; color:#333; font-weight:bold;">
+                Consolidated Health and Nutrition Data (<?= htmlspecialchars($file['year']) ?>)
+              </a>
             </span>
-            &nbsp; | &nbsp;
-            <a class="export-btn" href="../exports/<?= htmlspecialchars($file['file_name']) ?>" download>Export</a>
+            <div>
+              <span>
+                <?= isset($file['updated_at']) ? date("m-d-Y", strtotime($file['updated_at'])) : date("m-d-Y") ?>
+              </span>
+              &nbsp; | &nbsp;
+              <a class="export-btn" href="../exports/<?= htmlspecialchars($file['file_name']) ?>" download>Export</a>
+            </div>
           </div>
-        </div>
-      <?php endforeach; ?>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <p>No consolidated files available. No approved reports found.</p>
+      <?php endif; ?>
     </div>
   </div>
 </body>
