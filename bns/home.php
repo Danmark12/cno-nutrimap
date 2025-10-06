@@ -57,20 +57,9 @@ $pendingReportsList = $pendingListStmt->fetchAll();
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-  body {
-    margin:0;
-    font-family: Arial, Helvetica, sans-serif;
-    background:#f5f5f5;
-  }
-  .layout {
-    display:flex;
-    height:100vh;
-    flex-direction:column;
-  }
-  .body-layout {
-    display:flex;
-    flex:1;
-  }
+  body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; }
+  .layout { display:flex; height:100vh; flex-direction:column; }
+  .body-layout { display:flex; flex:1; }
   .sidebar {
     width:250px;
     background:#f9f9f9;
@@ -79,100 +68,30 @@ $pendingReportsList = $pendingListStmt->fetchAll();
     display:flex;
     flex-direction:column;
   }
-  .myreports-header {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:10px;
-    font-weight:bold;
-  }
-  .new-btn {
-    background:#009688;
-    color:white;
-    border:none;
-    padding:4px 10px;
-    border-radius:4px;
-    cursor:pointer;
-    font-size:13px;
-    display:flex;
-    align-items:center;
-  }
+  .myreports-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-weight:bold; }
+  .new-btn { background:#009688; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:13px; display:flex; align-items:center; }
   .new-btn i { margin-right:5px; }
-  .sidebar .searchbox {
-    margin-bottom:20px;
-  }
-  .sidebar .searchbox input {
-    width:91%;
-    padding:6px 10px;
-  }
-  .showmore {
-    margin-top:auto;
-    font-size:14px;
-    color:#333;
-    cursor:pointer;
-  }
-  .content {
-    flex:1;
-    padding:15px;
-    display:flex;
-    flex-direction:column;
-  }
-  .content h2 {
-    margin:0 0 15px 0;
-    font-size:18px;
-  }
-  .cards {
-    display:flex;
-    gap:15px;
-    margin-bottom:20px;
-  }
-  .card {
-    flex:1;
-    color:white;
-    padding:15px;
-    border-radius:4px;
-    cursor:pointer;
-  }
+  .sidebar .searchbox { margin-bottom:20px; }
+  .sidebar .searchbox input { width:91%; padding:6px 10px; }
+  .sidebar ul { list-style:none; padding:0; margin:0; }
+  .sidebar ul li { padding:6px 4px; cursor:pointer; border-radius:4px; }
+  .sidebar ul li:hover { background:#e0e0e0; }
+  .showmore { margin-top:auto; font-size:14px; color:#333; cursor:pointer; margin-bottom: 50px; }
+  .content { flex:1; padding:15px; display:flex; flex-direction:column; }
+  .content h2 { margin:0 0 15px 0; font-size:18px; }
+  .cards { display:flex; gap:15px; margin-bottom:20px; }
+  .card { flex:1; color:white; padding:15px; border-radius:4px; cursor:pointer; }
   .card .title { font-size:14px; }
-  .card .number { font-size:20px; font-weight:bold; }
+  .card .number { font-size:20px; font-weight:bold; margin-left: 200px; }
   .card.total { background:#003d3c; }
   .card.approved { background:#006d6a; }
   .card.pending { background:#009688; }
-  .panel {
-    background:white;
-    border:1px solid #ccc;
-    border-radius:4px;
-    padding:15px;
-    flex:1;
-    display:flex;
-    flex-direction:column;
-  }
-  .panel-header {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:10px;
-  }
+  .panel { background:white; border:1px solid #ccc; border-radius:4px; padding:15px; flex:1; display:flex; flex-direction:column; }
+  .panel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
   .panel-header h3 { margin:0; font-size:16px; }
-  .view-all {
-    background:white;
-    border:1px solid #999;
-    padding:4px 10px;
-    font-size:14px;
-    border-radius:4px;
-    cursor:pointer;
-  }
-  table {
-    width:100%;
-    border-collapse:collapse;
-    font-size:14px;
-  }
-  th {
-    text-align:left;
-    padding:8px;
-    font-weight:bold;
-    border-bottom:1px solid #ccc;
-  }
+  .view-all { background:white; border:1px solid #999; padding:4px 10px; font-size:14px; border-radius:4px; cursor:pointer; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; padding:8px; font-weight:bold; border-bottom:1px solid #ccc; }
   tbody tr { height:35px; border-bottom:1px solid #eee; }
   tbody td { padding:8px; color:#555; }
   </style>
@@ -189,14 +108,16 @@ $pendingReportsList = $pendingListStmt->fetchAll();
           <button class="new-btn" id="newBtn"><i class="fa fa-plus"></i> New</button>
         </div>
         <div class="searchbox">
-          <input type="text" placeholder="Find a report...">
+          <input type="text" id="searchInput" placeholder="Find a report...">
         </div>
-        <ul>
+        <ul id="approvedList">
           <?php foreach ($approvedReportsList as $report): ?>
-            <li><?= htmlspecialchars($report['title']) ?></li>
+            <li onclick="window.location.href='view_report.php?id=<?= $report['id'] ?>'">
+              <?= htmlspecialchars($report['title']) ?>
+            </li>
           <?php endforeach; ?>
         </ul>
-        <div class="showmore" id="showMoreBtn" onclick="window.location.href='report_history.php'">Show more:</div>
+        <div class="showmore" id="showMoreBtn">Show more:</div>
       </aside>
 
       <!-- Main -->
@@ -210,11 +131,7 @@ $pendingReportsList = $pendingListStmt->fetchAll();
       <script>
         setTimeout(() => {
           const msg = document.getElementById('successMessage');
-          if (msg) {
-            msg.style.transition = 'opacity 1s';
-            msg.style.opacity = '0';
-            setTimeout(() => msg.remove(), 1000);
-          }
+          if (msg) { msg.style.transition = 'opacity 1s'; msg.style.opacity = '0'; setTimeout(() => msg.remove(), 1000); }
         }, 20000);
       </script>
       <?php endif; ?>
@@ -222,7 +139,7 @@ $pendingReportsList = $pendingListStmt->fetchAll();
       <h2>Dashboard</h2>
       <div class="cards">
         <div class="card total" id="totalCard">
-          <div class="title">Total Reports:</div>
+          <div class="title">Total Reports: </div>
           <div class="number"><?= $totalReports ?></div>
         </div>
         <div class="card approved" id="approvedCard">
@@ -238,7 +155,7 @@ $pendingReportsList = $pendingListStmt->fetchAll();
       <div class="panel">
         <div class="panel-header">
           <h3>Pending Reports</h3>
-          <button class="view-all" id="viewAllBtn" onclick="window.location.href='reports.php'">View All</button>
+          <button class="view-all" id="viewAllBtn">View All</button>
         </div>
         <table>
           <thead>
@@ -270,5 +187,34 @@ $pendingReportsList = $pendingListStmt->fetchAll();
       </main>
     </div>
   </div>
+
+  <script>
+    // Sidebar search filter
+    const searchInput = document.getElementById('searchInput');
+    const approvedList = document.getElementById('approvedList');
+    searchInput.addEventListener('input', function() {
+      const filter = this.value.toLowerCase();
+      approvedList.querySelectorAll('li').forEach(li => {
+        li.style.display = li.textContent.toLowerCase().includes(filter) ? '' : 'none';
+      });
+    });
+
+    // Buttons navigation
+    document.getElementById('newBtn').addEventListener('click', () => {
+      window.location.href = 'add_report.php';
+    });
+    document.getElementById('viewAllBtn').addEventListener('click', () => {
+      window.location.href = 'reports.php';
+    });
+    document.getElementById('approvedCard').addEventListener('click', () => {
+      window.location.href = 'report_history.php';
+    });
+    document.getElementById('pendingCard').addEventListener('click', () => {
+      window.location.href = 'reports.php';
+    });
+    document.getElementById('showMoreBtn').addEventListener('click', () => {
+      window.location.href = 'report_history.php';
+    });
+  </script>
 </body>
 </html>

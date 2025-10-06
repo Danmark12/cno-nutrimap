@@ -130,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-align: center;
             color: red;
         }
+        
     </style>
 </head>
 <body>
@@ -137,12 +138,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php include 'header.php'; ?>
 
 <div class="card1">
-    <div style="display:flex;justify-content:space-between;align-items:right;margin-bottom:15px;">
+    
+    <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 10px;margin-right: 50px;">
         <a href="users.php" class="back-btn"><i class="fa fa-arrow-left"></i> Back</a>
     </div>
+</div>
+
+
 
     <!-- Register Card -->
     <div class="container">
+
         <div class="card">
             <h2>Create Account</h2>
 

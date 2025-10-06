@@ -160,7 +160,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   .content { flex:1; padding:15px; overflow-y:auto; position:relative; }
   button, .btn { padding:6px 14px; border:none; border-radius:4px; font-size:13px; cursor:pointer; }
   .submit-btn { background:#009688; color:#fff; }
-  .back-btn { background:#ff5722; color:#fff; font-weight:bold; position:absolute; top:15px; right:15px; }
+  .back-btn { background:white; color:black; border:1px solid #999; font-weight:bold; position:absolute; top:15px; right:15px; }
   .form-wrapper { background:#fff; padding:20px; border-radius:6px; max-width:900px; margin:auto; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
   .form-section { margin-bottom:40px; }
   .form-section h3 { text-align:center; margin-bottom:20px; }

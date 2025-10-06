@@ -72,8 +72,9 @@ $user_pic = $user && !empty($user['profile_pic'])
   display: flex; align-items: center; gap: 10px;
   text-decoration: none; color: #555; font-size: 15px;
   padding: 8px 0; transition: color 0.2s;
+  margin-bottom: 15px;
 }
-.footer-links a:hover { color: #009688; }
+.footer-links a:hover { color: #009688;  }
 
 .settings-dropdown { flex-direction: column; align-items: stretch; }
 .settings-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; }
