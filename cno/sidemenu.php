@@ -106,7 +106,7 @@ $user_profile_pic = $user && !empty($user['profile_pic'])
     <li data-url="reports.php"><i class="fa fa-file-alt"></i> Reports</li>
     <li data-url="barangay_data.php"><i class="fa fa-history"></i> Barangay Data</li>
     <li data-url="consolidated.php"><i class="fa fa-heartbeat"></i> Consolidated Data</li>
-    <li data-url="nutritional_map.php"><i class="fa fa-map-marked-alt"></i> Nutritional Map</li>
+    <li data-url="mapping.php"><i class="fa fa-map-marked-alt"></i> Nutritional Map</li>
     <li data-url="users.php"><i class="fa fa-users"></i> Users</li>
     <li data-url="logs.php"><i class="fa fa-clipboard-list"></i> Logs</li>
 

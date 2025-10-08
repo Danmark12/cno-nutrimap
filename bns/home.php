@@ -94,6 +94,10 @@ $pendingReportsList = $pendingListStmt->fetchAll();
   th { text-align:left; padding:8px; font-weight:bold; border-bottom:1px solid #ccc; }
   tbody tr { height:35px; border-bottom:1px solid #eee; }
   tbody td { padding:8px; color:#555; }
+      .card i {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -139,14 +143,17 @@ $pendingReportsList = $pendingListStmt->fetchAll();
       <h2>Dashboard</h2>
       <div class="cards">
         <div class="card total" id="totalCard">
+          <i class="fa-solid fa-file-alt"></i>
           <div class="title">Total Reports: </div>
           <div class="number"><?= $totalReports ?></div>
         </div>
         <div class="card approved" id="approvedCard">
+          <i class="fa-solid fa-circle-check"></i>
           <div class="title">Approved:</div>
           <div class="number"><?= $approvedReports ?></div>
         </div>
         <div class="card pending" id="pendingCard">
+          <i class="fa-solid fa-clock"></i>
           <div class="title">Pending:</div>
           <div class="number"><?= $pendingReports ?></div>
         </div>
