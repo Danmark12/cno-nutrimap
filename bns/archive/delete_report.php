@@ -8,25 +8,61 @@ function logActivity($pdo, $user_id, $action) {
     $stmt->execute([$user_id, $action]);
 }
 
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+// ✅ Require login
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type'])) {
+    header("Location: ../../auth/login.php");
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+$user_type = $_SESSION['user_type']; // 'BNS' or 'CNO'
+$reportId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+if ($reportId <= 0) {
     die("Invalid request");
 }
 
-$reportId = (int) $_GET['id'];
+// 🔹 Check if archive record exists for this user
+$check = $pdo->prepare("
+    SELECT * FROM report_archives
+    WHERE report_id = :rid AND user_id = :uid AND user_type = :utype
+");
+$check->execute([
+    'rid' => $reportId,
+    'uid' => $user_id,
+    'utype' => $user_type
+]);
+$archive = $check->fetch();
 
-// 🔹 Permanently delete the report from reports table
-$delStmt = $pdo->prepare("DELETE FROM reports WHERE id = ?");
-$delStmt->execute([$reportId]);
-
-// 🔹 Optional: delete related bns_reports data if exists
-$delBns = $pdo->prepare("DELETE FROM bns_reports WHERE report_id = ?");
-$delBns->execute([$reportId]);
-
-// ✅ Log the activity (only if user is logged in)
-if (isset($_SESSION['user_id'])) {
-    logActivity($pdo, $_SESSION['user_id'], "Deleted report ID: $reportId");
+if ($archive) {
+    // 🔹 Mark as deleted for this user only
+    $update = $pdo->prepare("
+        UPDATE report_archives
+        SET is_deleted = 1, deleted_at = NOW()
+        WHERE report_id = :rid AND user_id = :uid AND user_type = :utype
+    ");
+    $update->execute([
+        'rid' => $reportId,
+        'uid' => $user_id,
+        'utype' => $user_type
+    ]);
+} else {
+    // 🔹 Create a new record marked as deleted
+    $insert = $pdo->prepare("
+        INSERT INTO report_archives (report_id, user_id, user_type, is_archived, is_deleted, deleted_at)
+        VALUES (:rid, :uid, :utype, 1, 1, NOW())
+    ");
+    $insert->execute([
+        'rid' => $reportId,
+        'uid' => $user_id,
+        'utype' => $user_type
+    ]);
 }
 
-// 🔹 Redirect back to archive page
+// ✅ Log the delete activity
+logActivity($pdo, $user_id, "Deleted report (ID: $reportId) from archive");
+
+// ✅ Redirect back to archive page
 header("Location: ../archive.php?msg=deleted");
 exit();
+?>

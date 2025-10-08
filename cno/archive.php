@@ -2,41 +2,64 @@
 session_start();
 require '../db/config.php';
 
+// ✅ Require login
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../auth/login.php");
     exit();
 }
 
-$userId = $_SESSION['user_id'];
+$userId   = $_SESSION['user_id'];
+$userType = 'CNO'; // fixed type for admin
 
-// 🔹 Handle Bulk Actions BEFORE fetching reports
+// ✅ Handle Bulk Actions BEFORE fetching reports
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // 🔹 Restore all archived reports for this CNO only
     if (isset($_POST['restore_all'])) {
-        $pdo->exec("UPDATE reports SET status='Approved' WHERE status='Archived'");
+        $restoreStmt = $pdo->prepare("
+            UPDATE reports r
+            JOIN report_archives a ON a.report_id = r.id
+            SET r.status = r.prev_status, r.prev_status = NULL, a.is_archived = 0
+            WHERE a.user_id = ? AND a.user_type = ? AND a.is_archived = 1
+        ");
+        $restoreStmt->execute([$userId, $userType]);
+
         header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports restored");
         exit();
     }
+
+    // 🔹 Soft delete all archived reports for this CNO only
     if (isset($_POST['delete_all'])) {
-        $pdo->exec("DELETE FROM reports WHERE status='Archived'");
+        $deleteStmt = $pdo->prepare("
+            UPDATE report_archives 
+            SET is_deleted = 1 
+            WHERE user_id = ? AND user_type = ? AND is_archived = 1
+        ");
+        $deleteStmt->execute([$userId, $userType]);
+
         header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports deleted");
         exit();
     }
 }
 
-// 🔹 Fetch reports AFTER bulk actions
+// ✅ Fetch archived reports for this admin user only
 $stmt = $pdo->prepare("
-    SELECT r.id, r.report_date, r.report_time, r.prev_status, 
-           u.username, b.title, b.barangay, b.year
+    SELECT r.id, r.report_date, r.report_time, r.prev_status,
+           u.username, b.title, b.barangay, b.year, a.archived_at
     FROM reports r
     JOIN users u ON r.user_id = u.id
     LEFT JOIN bns_reports b ON b.report_id = r.id
-    WHERE r.status = 'Archived'
-    ORDER BY r.report_date DESC, r.report_time DESC
+    INNER JOIN report_archives a 
+      ON a.report_id = r.id 
+      AND a.user_id = :uid 
+      AND a.user_type = :utype
+      AND a.is_archived = 1
+      AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
+    ORDER BY a.archived_at DESC
 ");
-$stmt->execute();
+$stmt->execute(['uid' => $userId, 'utype' => $userType]);
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
 
 <!doctype html>
 <html lang="en">
@@ -147,22 +170,6 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
   </div>
 
-<?php
-// 🔹 Handle Bulk Actions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['restore_all'])) {
-        $pdo->exec("UPDATE reports SET status='Approved' WHERE status='Archived'");
-        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports restored");
-        exit();
-    }
-    if (isset($_POST['delete_all'])) {
-        $pdo->exec("DELETE FROM reports WHERE status='Archived'");
-        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports deleted");
-        exit();
-    }
-}
-?>
-
 <script>
 // Toggle menu
 document.querySelectorAll('.menu-btn').forEach(btn => {
@@ -175,7 +182,7 @@ document.addEventListener('click', () => {
   document.querySelectorAll('.menu-container').forEach(c => c.classList.remove('active'));
 });
 
-// 🔹 Reusable search function
+// 🔹 Search filter
 function filterArchive(searchTerm) {
   const q = searchTerm.toLowerCase();
   document.querySelectorAll('.archive-item').forEach(item => {
@@ -184,18 +191,15 @@ function filterArchive(searchTerm) {
     item.style.display = title.includes(q) || meta.includes(q) ? '' : 'none';
   });
 }
-
-// Attach search input
 document.getElementById('search').addEventListener('input', function() {
   filterArchive(this.value);
 });
 
-// Sort functionality
+// 🔹 Sort
 document.getElementById('sort').addEventListener('change', function() {
   const value = this.value;
   const list = document.getElementById('archiveList');
   const items = Array.from(list.querySelectorAll('.archive-item'));
-
   items.sort((a, b) => {
     if (value === 'title') {
       return a.querySelector('.archive-title').textContent.localeCompare(
@@ -211,9 +215,8 @@ document.getElementById('sort').addEventListener('change', function() {
       return dateB - dateA;
     }
   });
-
   items.forEach(item => list.appendChild(item));
-});  
+});
 </script>
 </body>
 </html>
