@@ -16,7 +16,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type'])) {
 $userId   = $_SESSION['user_id'];
 $userType = $_SESSION['user_type']; // 'BNS' or 'CNO'
 
-// ✅ Validate ID
+// ✅ Validate report ID
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     die("Invalid request");
 }
@@ -32,10 +32,11 @@ if (!$report) {
     die("Report not found.");
 }
 
-// ✅ Check if this report is archived for the current user
+// ✅ Check if the report is archived for this specific user
 $stmt = $pdo->prepare("
     SELECT * FROM report_archives 
-    WHERE report_id = ? AND user_id = ? AND user_type = ? AND is_archived = 1
+    WHERE report_id = ? AND user_id = ? AND user_type = ? 
+    AND is_archived = 1 AND (is_deleted = 0 OR is_deleted IS NULL)
 ");
 $stmt->execute([$reportId, $userId, $userType]);
 $archive = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -44,7 +45,7 @@ if ($archive) {
     // 🔹 Restore only for this user
     $update = $pdo->prepare("
         UPDATE report_archives 
-        SET is_archived = 0, is_deleted = 0 
+        SET is_archived = 0, is_deleted = 0, archived_at = NULL, deleted_at = NULL
         WHERE report_id = ? AND user_id = ? AND user_type = ?
     ");
     $update->execute([$reportId, $userId, $userType]);
@@ -53,18 +54,19 @@ if ($archive) {
     logActivity($pdo, $userId, "Restored archived report ID: $reportId (user-specific restore)");
 
 } elseif ($report['status'] === 'Archived') {
-    // 🔹 Fallback: restore globally if no user-specific archive record
+    // 🔹 Fallback: restore globally if no per-user archive record exists
     $prevStatus = $report['prev_status'] ?: 'Pending'; // Default to Pending if NULL
     $updateStmt = $pdo->prepare("UPDATE reports SET status = ?, prev_status = NULL WHERE id = ?");
     $updateStmt->execute([$prevStatus, $reportId]);
 
     // ✅ Log activity
     logActivity($pdo, $userId, "Restored report ID: $reportId to $prevStatus (global restore)");
+
 } else {
     die("Report is not archived and cannot be restored.");
 }
 
-// 🔹 Redirect back
+// ✅ Redirect back to archive list
 header("Location: ../archive.php?msg=Report restored successfully");
 exit();
 ?>

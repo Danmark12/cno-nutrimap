@@ -8,22 +8,21 @@ function logActivity($pdo, $user_id, $action) {
     $stmt->execute([$user_id, $action]);
 }
 
-// ✅ Check if user is logged in
+// ✅ Require login
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type'])) {
-    die("Unauthorized access.");
+    header("Location: ../../auth/login.php");
+    exit();
 }
 
-$userId   = $_SESSION['user_id'];
-$userType = $_SESSION['user_type']; // 'BNS' or 'CNO'
+$user_id = $_SESSION['user_id'];
+$user_type = $_SESSION['user_type']; // 'BNS' or 'CNO'
+$reportId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-// ✅ Validate ID
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+if ($reportId <= 0) {
     die("Invalid request");
 }
 
-$reportId = (int) $_GET['id'];
-
-// ✅ Check if report exists
+// ✅ Check if the report exists
 $stmt = $pdo->prepare("SELECT * FROM reports WHERE id = ?");
 $stmt->execute([$reportId]);
 $report = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -32,37 +31,19 @@ if (!$report) {
     die("Report not found.");
 }
 
-// 🔹 Check if there's a record in `report_archives` for this user
-$stmt = $pdo->prepare("
-    SELECT * FROM report_archives 
-    WHERE report_id = ? AND user_id = ? AND user_type = ? AND is_archived = 1
-");
-$stmt->execute([$reportId, $userId, $userType]);
-$archive = $stmt->fetch(PDO::FETCH_ASSOC);
+// 🔹 Delete related bns_reports
+$pdo->prepare("DELETE FROM bns_reports WHERE report_id = ?")->execute([$reportId]);
 
-if ($archive) {
-    // 🔹 Instead of deleting the report globally, mark this user's archive as deleted
-    $update = $pdo->prepare("
-        UPDATE report_archives 
-        SET is_deleted = 1 
-        WHERE report_id = ? AND user_id = ? AND user_type = ?
-    ");
-    $update->execute([$reportId, $userId, $userType]);
+// 🔹 Delete report archive record
+$pdo->prepare("DELETE FROM report_archives WHERE report_id = ?")->execute([$reportId]);
 
-    // ✅ Log the deletion activity
-    logActivity($pdo, $userId, "Deleted archived report ID: $reportId");
-} else {
-    // 🔹 If not found in report_archives, proceed with full deletion (fallback)
-    $delBns = $pdo->prepare("DELETE FROM bns_reports WHERE report_id = ?");
-    $delBns->execute([$reportId]);
+// 🔹 Delete main report
+$pdo->prepare("DELETE FROM reports WHERE id = ?")->execute([$reportId]);
 
-    $delReport = $pdo->prepare("DELETE FROM reports WHERE id = ?");
-    $delReport->execute([$reportId]);
+// ✅ Log the permanent delete activity
+logActivity($pdo, $user_id, "Permanently deleted report (ID: $reportId)");
 
-    logActivity($pdo, $userId, "Permanently deleted report ID: $reportId (no archive record found)");
-}
-
-// 🔹 Redirect back to archive page with a success message
-header("Location: ../archive.php?msg=Report deleted permanently");
+// ✅ Redirect back to archive page
+header("Location: ../archive.php?msg=Report permanently deleted");
 exit();
 ?>
