@@ -31,17 +31,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $code = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($code && $code['otp_code'] === $otp && strtotime($code['expires_at']) > time()) {
-            // ✅ OTP verified
-            $_SESSION['user_id'] = $user_id;
+            // ✅ OTP verified → finalize login session
+            $_SESSION['user_id']   = $user_id;
             $_SESSION['user_type'] = $_SESSION['pending_user_type'];
             $_SESSION['first_name'] = $_SESSION['pending_first_name'];
+            $_SESSION['email']     = $_SESSION['pending_user_email'];
+            $_SESSION['barangay']  = $_SESSION['pending_barangay']; 
 
-            unset($_SESSION['pending_user_id'], $_SESSION['pending_user_type'], $_SESSION['pending_first_name'], $_SESSION['pending_user_email']);
+            if (isset($_SESSION['pending_username'])) {
+                $_SESSION['username'] = $_SESSION['pending_username'];
+            }
 
-            if ($_SESSION['user_type'] === 'admin') {
-                header("Location: admin_dashboard.php");
+            // ✅ Save device to login_history (if not already saved)
+            $session_id = session_id();
+            $browser = $_SERVER['HTTP_USER_AGENT'];
+            $ip = $_SERVER['REMOTE_ADDR'];
+
+            // Check if device already exists
+            $checkStmt = $pdo->prepare("
+                SELECT id FROM login_history
+                WHERE user_id = ? AND browser = ? AND ip_address = ?
+                LIMIT 1
+            ");
+            $checkStmt->execute([$user_id, $browser, $ip]);
+            $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$existing) {
+                // Insert only if not already saved
+                $insertStmt = $pdo->prepare("
+                    INSERT INTO login_history (user_id, session_id, browser, ip_address)
+                    VALUES (?, ?, ?, ?)
+                ");
+                $insertStmt->execute([$user_id, $session_id, $browser, $ip]);
             } else {
-                header("Location: bns/dashboard.php");
+                // Update session_id if user logs in again on same device
+                $updateStmt = $pdo->prepare("
+                    UPDATE login_history SET session_id = ? WHERE id = ?
+                ");
+                $updateStmt->execute([$session_id, $existing['id']]);
+            }
+
+            // ✅ clear pending values
+            unset(
+                $_SESSION['pending_user_id'], 
+                $_SESSION['pending_user_type'], 
+                $_SESSION['pending_first_name'], 
+                $_SESSION['pending_user_email'],
+                $_SESSION['pending_barangay'],
+                $_SESSION['pending_username']
+            );
+
+            // ✅ redirect based on role
+            if ($_SESSION['user_type'] === 'CNO') {
+                header("Location: ../cno/home.php");
+            } else {
+                header("Location: ../bns/home.php");
             }
             exit;
         } else {
@@ -50,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
