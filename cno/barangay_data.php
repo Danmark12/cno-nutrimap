@@ -3,10 +3,13 @@ session_start();
 require '../db/config.php';
 
 // ✅ Require login
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type'])) {
     header("Location: ../auth/login.php");
     exit();
 }
+
+$userId   = $_SESSION['user_id'];
+$userType = $_SESSION['user_type']; // 'CNO'
 
 // ✅ Set Philippine Timezone
 date_default_timezone_set('Asia/Manila');
@@ -15,11 +18,39 @@ date_default_timezone_set('Asia/Manila');
 if (isset($_GET['archive_id']) && is_numeric($_GET['archive_id'])) {
     $reportId = (int)$_GET['archive_id'];
 
-    // ✅ Update status to Archived only if currently Approved
-    $stmt = $pdo->prepare("UPDATE reports SET prev_status = status, status = 'Archived' WHERE id = ? AND status = 'Approved'");
+    // 🔹 Check if report exists and approved
+    $stmt = $pdo->prepare("SELECT * FROM reports WHERE id = ? AND status = 'Approved'");
     $stmt->execute([$reportId]);
+    $report = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    header("Location: barangay_data.php");
+    if ($report) {
+        // 🔹 Check if already archived for this user
+        $check = $pdo->prepare("
+            SELECT * FROM report_archives 
+            WHERE report_id = ? AND user_id = ? AND user_type = ?
+        ");
+        $check->execute([$reportId, $userId, $userType]);
+        $exists = $check->fetch(PDO::FETCH_ASSOC);
+
+        if ($exists) {
+            // 🔹 If record exists, just mark as archived (reactivate if unarchived)
+            $update = $pdo->prepare("
+                UPDATE report_archives 
+                SET is_archived = 1, is_deleted = 0, archived_at = NOW() 
+                WHERE report_id = ? AND user_id = ? AND user_type = ?
+            ");
+            $update->execute([$reportId, $userId, $userType]);
+        } else {
+            // 🔹 Otherwise insert new record
+            $insert = $pdo->prepare("
+                INSERT INTO report_archives (report_id, user_id, user_type, is_archived, archived_at)
+                VALUES (?, ?, ?, 1, NOW())
+            ");
+            $insert->execute([$reportId, $userId, $userType]);
+        }
+    }
+
+    header("Location: barangay_data.php?msg=Report archived successfully");
     exit();
 }
 
@@ -35,9 +66,16 @@ $sql = "
     FROM reports r
     INNER JOIN bns_reports b ON b.report_id = r.id
     WHERE r.status = 'Approved'
+    AND r.id NOT IN (
+        SELECT report_id FROM report_archives 
+        WHERE user_id = :uid AND user_type = :utype AND is_archived = 1 AND is_deleted = 0
+    )
 ";
 
-$params = [];
+$params = [
+    ':uid' => $userId,
+    ':utype' => $userType
+];
 
 // search filter
 if ($search) {
@@ -106,8 +144,6 @@ unset($report);
     .card-right { display:flex; align-items:center; gap:15px; }
     .export-link { color:#009688; font-weight:bold; text-decoration:none; }
     .export-link:hover { text-decoration:underline; }
-    .btn-export { background:#009688; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; }
-    .btn-export:hover { background:#00796b; }
     .archive-link { color:#dc3545; font-weight:bold; text-decoration:none; }
     .archive-link:hover { text-decoration:underline; }
   </style>
@@ -150,8 +186,8 @@ unset($report);
       </select>
       <label for="sort">Sort by:</label>
       <select name="sort" id="sort" onchange="this.form.submit()">
-        <option value="date" <?= $sort=="date"?"selected":"" ?>>A - Z</option>
-        <option value="name" <?= $sort=="name"?"selected":"" ?>>New - Old</option>
+        <option value="date" <?= $sort=="date"?"selected":"" ?>>New - Old</option>
+        <option value="name" <?= $sort=="name"?"selected":"" ?>>A - Z</option>
       </select>
       <button type="submit" style="display:none;"></button>
     </form>
@@ -171,17 +207,13 @@ unset($report);
             foreach ($years as $yr => $rows) {
                 echo "<div class='year-title'>Year $yr</div>";
                 foreach ($rows as $row) { 
-                    // ✅ Combine date + time (Philippines)
                     $datetime = date("M d, Y h:i A", strtotime($row['report_date'].' '.$row['report_time']));
                     ?>
                   <div class="card">
-                    <div class="card-title">
-                      <?= htmlspecialchars($row['title']) ?>
-                    </div>
+                    <div class="card-title"><?= htmlspecialchars($row['title']) ?></div>
                     <div class="card-right">
                       <div><?= $datetime ?></div>
                       <a href="view_barangay.php?id=<?= $row['id'] ?>" class="export-link">View</a>
-                      <!-- ✅ Export Button beside Archive -->
                       <a href="export_bns.php?id=<?= $row['id'] ?>" class="export-link"><i class="fa fa-file-export"></i> Export</a>
                       <a href="barangay_data.php?archive_id=<?= $row['id'] ?>" class="archive-link" onclick="return confirm('Are you sure you want to archive this file?')">
                         <i class="fa fa-archive"></i> Archive

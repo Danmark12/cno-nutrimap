@@ -313,6 +313,19 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+CREATE TABLE `report_archives` (
+  `id` int(11) NOT NULL,
+  `report_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `user_type` enum('BNS','CNO') NOT NULL,
+  `is_archived` tinyint(1) DEFAULT 0,
+  `is_deleted` tinyint(1) DEFAULT 0,
+  `archived_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+
 -- Dumping data for table `users`
 --
 

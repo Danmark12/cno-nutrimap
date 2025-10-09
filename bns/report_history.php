@@ -3,12 +3,13 @@ session_start();
 require '../db/config.php'; 
 
 // ✅ Require login
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type'])) {
     header("Location: ../auth/login.php");
     exit();
 }
 
 $userId = $_SESSION['user_id'];
+$userType = $_SESSION['user_type']; // 'BNS' or 'CNO'
 
 // --- Pagination setup ---
 $limit = 10; // reports per page
@@ -19,34 +20,86 @@ $offset = ($page - 1) * $limit;
 if (isset($_GET['archive_id']) && is_numeric($_GET['archive_id'])) {
     $reportId = (int)$_GET['archive_id'];
 
-    // Save current status to prev_status before archiving
-    $stmt = $pdo->prepare("UPDATE reports SET prev_status = status, status = 'Archived' WHERE id = ? AND user_id = ?");
-    $stmt->execute([$reportId, $userId]);
+    // 🔹 Check if the record exists in report_archives
+    $check = $pdo->prepare("
+        SELECT * FROM report_archives 
+        WHERE report_id = :rid AND user_id = :uid AND user_type = :utype
+    ");
+    $check->execute([
+        'rid' => $reportId,
+        'uid' => $userId,
+        'utype' => $userType
+    ]);
+    $existing = $check->fetch();
 
-    // Reload same page
-    header("Location: ".$_SERVER['PHP_SELF']."?page=".$page);
+    if ($existing) {
+        // 🔹 Update existing record
+        $update = $pdo->prepare("
+            UPDATE report_archives 
+            SET is_archived = 1, archived_at = NOW() 
+            WHERE report_id = :rid AND user_id = :uid AND user_type = :utype
+        ");
+        $update->execute([
+            'rid' => $reportId,
+            'uid' => $userId,
+            'utype' => $userType
+        ]);
+    } else {
+        // 🔹 Insert new archive record
+        $insert = $pdo->prepare("
+            INSERT INTO report_archives (report_id, user_id, user_type, is_archived, archived_at) 
+            VALUES (:rid, :uid, :utype, 1, NOW())
+        ");
+        $insert->execute([
+            'rid' => $reportId,
+            'uid' => $userId,
+            'utype' => $userType
+        ]);
+    }
+
+    // ✅ Redirect to same page
+    header("Location: " . $_SERVER['PHP_SELF'] . "?page=" . $page);
     exit();
 }
 
-// --- Fetch approved reports for this user only ---
+// --- Fetch approved reports for this user only (exclude archived) ---
 $stmt = $pdo->prepare("
     SELECT r.*, u.username, b.title 
     FROM reports r
     JOIN users u ON r.user_id = u.id
     LEFT JOIN bns_reports b ON b.report_id = r.id
-    WHERE r.status = 'Approved' AND r.user_id = :uid
+    WHERE r.status = 'Approved'
+      AND r.user_id = :uid
+      AND r.id NOT IN (
+          SELECT report_id FROM report_archives 
+          WHERE user_id = :uid2 AND user_type = :utype AND is_archived = 1
+      )
     ORDER BY r.report_date DESC, r.report_time DESC
     LIMIT :limit OFFSET :offset
 ");
 $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+$stmt->bindValue(':uid2', $userId, PDO::PARAM_INT);
+$stmt->bindValue(':utype', $userType, PDO::PARAM_STR);
 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// --- Count total approved reports for this user ---
-$totalStmt = $pdo->prepare("SELECT COUNT(*) FROM reports WHERE status = 'Approved' AND user_id = :uid");
-$totalStmt->execute(['uid' => $userId]);
+// --- Count total approved reports for this user (exclude archived) ---
+$totalStmt = $pdo->prepare("
+    SELECT COUNT(*) FROM reports 
+    WHERE status = 'Approved' 
+      AND user_id = :uid 
+      AND id NOT IN (
+          SELECT report_id FROM report_archives 
+          WHERE user_id = :uid2 AND user_type = :utype AND is_archived = 1
+      )
+");
+$totalStmt->execute([
+    'uid' => $userId,
+    'uid2' => $userId,
+    'utype' => $userType
+]);
 $totalReports = $totalStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>
@@ -107,7 +160,6 @@ $totalPages = ceil($totalReports / $limit);
 </head>
 <body>
   <div class="layout">
-    <!-- Header -->
     <?php include 'header.php'; ?>
 
     <div class="body-layout">

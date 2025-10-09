@@ -2,41 +2,74 @@
 session_start();
 require '../db/config.php';
 
+// ✅ Require login
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../auth/login.php");
     exit();
 }
 
-$userId = $_SESSION['user_id'];
+$userId   = $_SESSION['user_id'];
+$userType = $_SESSION['user_type']; // 'CNO'
 
-// 🔹 Handle Bulk Actions BEFORE fetching reports
+// ✅ Handle Bulk Actions BEFORE fetching reports
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['restore_all'])) {
-        $pdo->exec("UPDATE reports SET status='Approved' WHERE status='Archived'");
+        // Restore all archived reports for this CNO user only
+        $stmt = $pdo->prepare("
+            UPDATE report_archives 
+            SET is_archived = 0, is_deleted = 0, deleted_at = NULL 
+            WHERE user_id = ? AND user_type = 'CNO' AND is_archived = 1
+        ");
+        $stmt->execute([$userId]);
+
         header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports restored");
         exit();
     }
+
     if (isset($_POST['delete_all'])) {
-        $pdo->exec("DELETE FROM reports WHERE status='Archived'");
-        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports deleted");
+        // 🔹 Permanently delete all archived reports for this CNO user
+        $stmt = $pdo->prepare("
+            SELECT report_id FROM report_archives 
+            WHERE user_id = ? AND user_type = 'CNO' AND is_archived = 1
+        ");
+        $stmt->execute([$userId]);
+        $allReports = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        if ($allReports) {
+            // Delete from bns_reports
+            $in = str_repeat('?,', count($allReports)-1) . '?';
+            $pdo->prepare("DELETE FROM bns_reports WHERE report_id IN ($in)")->execute($allReports);
+
+            // Delete from reports
+            $pdo->prepare("DELETE FROM reports WHERE id IN ($in)")->execute($allReports);
+
+            // Delete from report_archives
+            $pdo->prepare("DELETE FROM report_archives WHERE report_id IN ($in)")->execute($allReports);
+        }
+
+        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports permanently deleted");
         exit();
     }
 }
 
-// 🔹 Fetch reports AFTER bulk actions
+// ✅ Fetch archived reports for this CNO user only
 $stmt = $pdo->prepare("
-    SELECT r.id, r.report_date, r.report_time, r.prev_status, 
-           u.username, b.title, b.barangay, b.year
+    SELECT r.id, r.report_date, r.report_time, r.prev_status,
+           u.username, b.title, b.barangay, b.year, a.archived_at
     FROM reports r
     JOIN users u ON r.user_id = u.id
     LEFT JOIN bns_reports b ON b.report_id = r.id
-    WHERE r.status = 'Archived'
-    ORDER BY r.report_date DESC, r.report_time DESC
+    INNER JOIN report_archives a 
+      ON a.report_id = r.id 
+      AND a.user_id = :uid 
+      AND a.user_type = 'CNO'
+      AND a.is_archived = 1
+      AND a.is_deleted = 0
+    ORDER BY a.archived_at DESC
 ");
-$stmt->execute();
+$stmt->execute(['uid' => $userId]);
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
 
 <!doctype html>
 <html lang="en">
@@ -147,22 +180,6 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
   </div>
 
-<?php
-// 🔹 Handle Bulk Actions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['restore_all'])) {
-        $pdo->exec("UPDATE reports SET status='Approved' WHERE status='Archived'");
-        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports restored");
-        exit();
-    }
-    if (isset($_POST['delete_all'])) {
-        $pdo->exec("DELETE FROM reports WHERE status='Archived'");
-        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports deleted");
-        exit();
-    }
-}
-?>
-
 <script>
 // Toggle menu
 document.querySelectorAll('.menu-btn').forEach(btn => {
@@ -213,7 +230,7 @@ document.getElementById('sort').addEventListener('change', function() {
   });
 
   items.forEach(item => list.appendChild(item));
-});  
+});
 </script>
 </body>
 </html>

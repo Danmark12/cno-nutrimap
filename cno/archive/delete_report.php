@@ -8,14 +8,21 @@ function logActivity($pdo, $user_id, $action) {
     $stmt->execute([$user_id, $action]);
 }
 
-// ✅ Validate ID
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+// ✅ Require login
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type'])) {
+    header("Location: ../../auth/login.php");
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+$user_type = $_SESSION['user_type']; // 'BNS' or 'CNO'
+$reportId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+if ($reportId <= 0) {
     die("Invalid request");
 }
 
-$reportId = (int) $_GET['id'];
-
-// ✅ Check if report exists
+// ✅ Check if the report exists
 $stmt = $pdo->prepare("SELECT * FROM reports WHERE id = ?");
 $stmt->execute([$reportId]);
 $report = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -24,19 +31,19 @@ if (!$report) {
     die("Report not found.");
 }
 
-// 🔹 Delete associated BNS report first
-$delBns = $pdo->prepare("DELETE FROM bns_reports WHERE report_id = ?");
-$delBns->execute([$reportId]);
+// 🔹 Delete related bns_reports
+$pdo->prepare("DELETE FROM bns_reports WHERE report_id = ?")->execute([$reportId]);
 
-// 🔹 Delete the report itself
-$delReport = $pdo->prepare("DELETE FROM reports WHERE id = ?");
-$delReport->execute([$reportId]);
+// 🔹 Delete report archive record
+$pdo->prepare("DELETE FROM report_archives WHERE report_id = ?")->execute([$reportId]);
 
-// ✅ Log the deletion activity
-if (isset($_SESSION['user_id'])) {
-    logActivity($pdo, $_SESSION['user_id'], "Permanently deleted report ID: $reportId");
-}
+// 🔹 Delete main report
+$pdo->prepare("DELETE FROM reports WHERE id = ?")->execute([$reportId]);
 
-// 🔹 Redirect back to archive page with a success message
-header("Location: ../archive.php?msg=Report deleted permanently");
+// ✅ Log the permanent delete activity
+logActivity($pdo, $user_id, "Permanently deleted report (ID: $reportId)");
+
+// ✅ Redirect back to archive page
+header("Location: ../archive.php?msg=Report permanently deleted");
 exit();
+?>
