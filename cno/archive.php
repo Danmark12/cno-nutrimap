@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ");
         $stmt->execute([$userId, $userType]);
 
+        logActivity($pdo, $userId, "Restored all archived reports as $userType");
         header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports restored");
         exit();
     }
@@ -35,23 +36,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['delete_all'])) {
         // 🔹 Delete all archived reports for this user only
         $stmt = $pdo->prepare("
-            SELECT report_id FROM report_archives 
+            UPDATE report_archives
+            SET is_deleted = 1, is_archived = 0, deleted_at = NOW()
             WHERE user_id = ? AND user_type = ? AND is_archived = 1
         ");
         $stmt->execute([$userId, $userType]);
-        $allReports = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-        if ($allReports) {
-            // Delete only the user's archive records
-            $in = str_repeat('?,', count($allReports)-1) . '?';
-            $stmtDelete = $pdo->prepare("DELETE FROM report_archives WHERE report_id IN ($in) AND user_id = ? AND user_type = ?");
-            $stmtDelete->execute([...$allReports, $userId, $userType]);
-
-            // Log bulk delete
-            logActivity($pdo, $userId, "Deleted all archived reports (IDs: ".implode(',', $allReports).")");
-        }
-
-        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports deleted for your account");
+        logActivity($pdo, $userId, "Deleted all archived reports as $userType");
+        header("Location: ".$_SERVER['PHP_SELF']."?msg=All archived reports deleted");
         exit();
     }
 }
@@ -119,6 +111,16 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
     .status.Approved { background:#28a745; }
     .status.Rejected { background:#dc3545; }
     .status.Archived { background:#6c757d; }
+
+    .msg-box {
+      background:#d4edda;
+      color:#155724;
+      padding:10px 15px;
+      border-radius:6px;
+      border:1px solid #c3e6cb;
+      margin-bottom:15px;
+      font-size:14px;
+    }
   </style>
 </head>
 <body>
@@ -126,6 +128,12 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <?php include 'header.php'; ?>
 <div class="body-layout">
   <div class="content">
+
+    <!-- ✅ Success Message -->
+    <?php if (isset($_GET['msg'])): ?>
+      <div class="msg-box"><?= htmlspecialchars($_GET['msg']) ?></div>
+    <?php endif; ?>
+
     <!-- 🔹 Toolbar -->
     <div class="card">
       <div style="display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -141,8 +149,8 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <option value="date">Newest → Oldest</option>
           </select>
 
-          <!-- Bulk Actions -->
-          <form style="display:inline;" method="post" onsubmit="return confirm('Are you sure?');">
+          <!-- ✅ Fixed Bulk Actions -->
+          <form action="" method="post" style="display:inline;" onsubmit="return confirm('Are you sure?');">
             <button type="submit" name="restore_all"><i class="fa fa-undo"></i> Restore All</button>
             <button type="submit" name="delete_all"><i class="fa fa-trash"></i> Delete All</button>
           </form>
@@ -194,8 +202,6 @@ document.querySelectorAll('.menu-btn').forEach(btn => {
 document.addEventListener('click', () => {
   document.querySelectorAll('.menu-container').forEach(c => c.classList.remove('active'));
 });
-
-// Search and Sort scripts remain unchanged
 </script>
 </body>
 </html>

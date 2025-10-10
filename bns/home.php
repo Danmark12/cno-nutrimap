@@ -5,48 +5,97 @@ require '../db/config.php'; // adjust path if needed
 // ✅ Current user
 $userId = $_SESSION['user_id'] ?? null;
 
-// ✅ Total reports
-$totalStmt = $pdo->prepare("SELECT COUNT(*) 
+// ✅ Total reports (exclude archived)
+$totalStmt = $pdo->prepare("
+    SELECT COUNT(*) 
     FROM reports r
     JOIN bns_reports b ON r.id = b.report_id
-    WHERE r.user_id = ?");
-$totalStmt->execute([$userId]);
+    WHERE r.user_id = ?
+    AND NOT EXISTS (
+        SELECT 1 FROM report_archives a
+        WHERE a.report_id = r.id 
+        AND a.user_id = ? 
+        AND a.user_type = 'BNS' 
+        AND a.is_archived = 1
+    )
+");
+$totalStmt->execute([$userId, $userId]);
 $totalReports = $totalStmt->fetchColumn();
 
-// ✅ Approved reports
-$approvedStmt = $pdo->prepare("SELECT COUNT(*) 
+// ✅ Approved reports (exclude archived)
+$approvedStmt = $pdo->prepare("
+    SELECT COUNT(*) 
     FROM reports r
     JOIN bns_reports b ON r.id = b.report_id
-    WHERE r.user_id = ? AND r.status = 'Approved'");
-$approvedStmt->execute([$userId]);
+    WHERE r.user_id = ? 
+      AND r.status = 'Approved'
+      AND NOT EXISTS (
+        SELECT 1 FROM report_archives a
+        WHERE a.report_id = r.id 
+        AND a.user_id = ? 
+        AND a.user_type = 'BNS' 
+        AND a.is_archived = 1
+    )
+");
+$approvedStmt->execute([$userId, $userId]);
 $approvedReports = $approvedStmt->fetchColumn();
 
-// ✅ Pending reports
-$pendingStmt = $pdo->prepare("SELECT COUNT(*) 
+// ✅ Pending reports (exclude archived)
+$pendingStmt = $pdo->prepare("
+    SELECT COUNT(*) 
     FROM reports r
     JOIN bns_reports b ON r.id = b.report_id
-    WHERE r.user_id = ? AND r.status = 'Pending'");
-$pendingStmt->execute([$userId]);
+    WHERE r.user_id = ? 
+      AND r.status = 'Pending'
+      AND NOT EXISTS (
+        SELECT 1 FROM report_archives a
+        WHERE a.report_id = r.id 
+        AND a.user_id = ? 
+        AND a.user_type = 'BNS' 
+        AND a.is_archived = 1
+    )
+");
+$pendingStmt->execute([$userId, $userId]);
 $pendingReports = $pendingStmt->fetchColumn();
 
-// ✅ Approved reports list (My Reports sidebar)
-$approvedListStmt = $pdo->prepare("SELECT r.id, b.title 
+// ✅ Approved reports list (My Reports sidebar) - exclude archived
+$approvedListStmt = $pdo->prepare("
+    SELECT r.id, b.title 
     FROM reports r
     JOIN bns_reports b ON r.id = b.report_id
-    WHERE r.user_id = ? AND r.status = 'Approved'
+    WHERE r.user_id = ? 
+      AND r.status = 'Approved'
+      AND NOT EXISTS (
+        SELECT 1 FROM report_archives a
+        WHERE a.report_id = r.id 
+        AND a.user_id = ? 
+        AND a.user_type = 'BNS' 
+        AND a.is_archived = 1
+    )
     ORDER BY r.report_date DESC
-    LIMIT 5");
-$approvedListStmt->execute([$userId]);
+    LIMIT 5
+");
+$approvedListStmt->execute([$userId, $userId]);
 $approvedReportsList = $approvedListStmt->fetchAll();
 
-// ✅ Pending reports list (main panel)
-$pendingListStmt = $pdo->prepare("SELECT r.id, b.title, b.barangay, r.status, r.report_time, r.report_date
+// ✅ Pending reports list (main panel) - exclude archived
+$pendingListStmt = $pdo->prepare("
+    SELECT r.id, b.title, b.barangay, r.status, r.report_time, r.report_date
     FROM reports r
     JOIN bns_reports b ON r.id = b.report_id
-    WHERE r.user_id = ? AND r.status = 'Pending'
+    WHERE r.user_id = ? 
+      AND r.status = 'Pending'
+      AND NOT EXISTS (
+        SELECT 1 FROM report_archives a
+        WHERE a.report_id = r.id 
+        AND a.user_id = ? 
+        AND a.user_type = 'BNS' 
+        AND a.is_archived = 1
+    )
     ORDER BY r.report_date DESC
-    LIMIT 5");
-$pendingListStmt->execute([$userId]);
+    LIMIT 5
+");
+$pendingListStmt->execute([$userId, $userId]);
 $pendingReportsList = $pendingListStmt->fetchAll();
 ?>
 <!doctype html>
@@ -94,10 +143,7 @@ $pendingReportsList = $pendingListStmt->fetchAll();
   th { text-align:left; padding:8px; font-weight:bold; border-bottom:1px solid #ccc; }
   tbody tr { height:35px; border-bottom:1px solid #eee; }
   tbody td { padding:8px; color:#555; }
-      .card i {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
+  .card i { font-size: 24px; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -126,7 +172,6 @@ $pendingReportsList = $pendingListStmt->fetchAll();
 
       <!-- Main -->
       <main class="content">
-
       <?php if (isset($_SESSION['success'])): ?>
       <div id="successMessage" style="background: #d4edda; color: #155724; padding: 10px; margin: 10px 0; border-radius: 5px;">
           <?= $_SESSION['success']; unset($_SESSION['success']); ?>

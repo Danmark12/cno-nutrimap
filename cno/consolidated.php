@@ -17,18 +17,24 @@ $pdo->exec("
 function regenerateConsolidatedFile($pdo, $year) {
     $fileName = "consolidated_health_nutrition_{$year}.json";
 
+    // ✅ Updated query — exclude reports archived by CNO
     $reportsStmt = $pdo->prepare("
         SELECT r.id, r.report_date, r.report_time, r.status,
                u.first_name, u.last_name, u.barangay, b.title, b.year, b.*
         FROM reports r
         JOIN users u ON r.user_id = u.id
         JOIN bns_reports b ON b.report_id = r.id
-        WHERE r.status = 'Approved' AND b.year = ?
+        WHERE r.status = 'Approved'
+          AND b.year = ?
+          AND r.id NOT IN (
+              SELECT report_id FROM report_archives
+              WHERE user_type = 'CNO' AND is_archived = 1
+          )
     ");
     $reportsStmt->execute([$year]);
     $reports = $reportsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // ✅ If no approved reports, delete consolidated entry and file
+    // ✅ If no approved (and unarchived) reports, delete consolidated entry and file
     if (empty($reports)) {
         // Delete file from exports folder if exists
         $checkStmt = $pdo->prepare("SELECT file_name FROM consolidated_reports WHERE year = ?");
@@ -44,10 +50,12 @@ function regenerateConsolidatedFile($pdo, $year) {
         return;
     }
 
+    // ✅ Ensure exports folder exists
     if (!is_dir("../exports")) {
         mkdir("../exports", 0777, true);
     }
 
+    // ✅ Save consolidated JSON
     file_put_contents("../exports/$fileName", json_encode($reports, JSON_PRETTY_PRINT));
 
     // ✅ Insert or update consolidated_reports table

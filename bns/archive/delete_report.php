@@ -62,6 +62,30 @@ if ($archive) {
 // ✅ Log the delete activity
 logActivity($pdo, $user_id, "Deleted report (ID: $reportId) from archive");
 
+// 🧩 NEW LOGIC: Delete the report from database only if no one (BNS/CNO) has a copy anymore
+$checkRemaining = $pdo->prepare("
+    SELECT COUNT(*) AS remaining 
+    FROM report_archives 
+    WHERE report_id = :rid AND is_deleted = 0
+");
+$checkRemaining->execute(['rid' => $reportId]);
+$remaining = $checkRemaining->fetchColumn();
+
+// 🧩 If no active (non-deleted) copy remains, delete from all tables
+if ($remaining == 0) {
+    // Delete from bns_reports if exists
+    $pdo->prepare("DELETE FROM bns_reports WHERE report_id = :rid")->execute(['rid' => $reportId]);
+
+    // Delete from main reports table
+    $pdo->prepare("DELETE FROM reports WHERE id = :rid")->execute(['rid' => $reportId]);
+
+    // Delete related archives
+    $pdo->prepare("DELETE FROM report_archives WHERE report_id = :rid")->execute(['rid' => $reportId]);
+
+    // Log that the report was permanently deleted
+    logActivity($pdo, $user_id, "Permanently deleted report (ID: $reportId) — no remaining copies from BNS or CNO");
+}
+
 // ✅ Redirect back to archive page
 header("Location: ../archive.php?msg=deleted");
 exit();

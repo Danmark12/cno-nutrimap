@@ -102,7 +102,7 @@ body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 
 <div class="container">
     <div class="header">
         <span>Notifications</span>
-        <a href="notifications.php">See All</a>
+        <a href="reports.php">See All</a>
     </div>
 
     <?php

@@ -23,22 +23,51 @@ $bnsCount = $pdo->query("SELECT COUNT(*) FROM users WHERE user_type='BNS'")->fet
 // ✅ Total barangays
 $totalBarangays = $pdo->query("SELECT COUNT(DISTINCT barangay) FROM users")->fetchColumn();
 
-// ✅ Total reports for this user
-$totalReportsStmt = $pdo->prepare("SELECT COUNT(*) FROM reports WHERE user_id = ?");
-$totalReportsStmt->execute([$userId]);
+// ✅ Total reports (exclude archived by CNO)
+$totalReportsStmt = $pdo->prepare("
+    SELECT COUNT(*) 
+    FROM reports r
+    WHERE NOT EXISTS (
+        SELECT 1 FROM report_archives a
+        WHERE a.report_id = r.id 
+          AND a.user_type = 'CNO' 
+          AND a.is_archived = 1
+    )
+");
+$totalReportsStmt->execute();
 $totalReports = $totalReportsStmt->fetchColumn();
 
-// ✅ Approved reports
-$approvedReportsStmt = $pdo->prepare("SELECT COUNT(*) FROM reports WHERE user_id = ? AND status = 'Approved'");
-$approvedReportsStmt->execute([$userId]);
+// ✅ Approved reports (exclude archived by CNO)
+$approvedReportsStmt = $pdo->prepare("
+    SELECT COUNT(*) 
+    FROM reports r
+    WHERE r.status = 'Approved'
+    AND NOT EXISTS (
+        SELECT 1 FROM report_archives a
+        WHERE a.report_id = r.id 
+          AND a.user_type = 'CNO' 
+          AND a.is_archived = 1
+    )
+");
+$approvedReportsStmt->execute();
 $approvedReports = $approvedReportsStmt->fetchColumn();
 
-// ✅ Pending reports
-$pendingReportsStmt = $pdo->prepare("SELECT COUNT(*) FROM reports WHERE user_id = ? AND status = 'Pending'");
-$pendingReportsStmt->execute([$userId]);
+// ✅ Pending reports (exclude archived by CNO)
+$pendingReportsStmt = $pdo->prepare("
+    SELECT COUNT(*) 
+    FROM reports r
+    WHERE r.status = 'Pending'
+    AND NOT EXISTS (
+        SELECT 1 FROM report_archives a
+        WHERE a.report_id = r.id 
+          AND a.user_type = 'CNO' 
+          AND a.is_archived = 1
+    )
+");
+$pendingReportsStmt->execute();
 $pendingReports = $pendingReportsStmt->fetchColumn();
 
-// ✅ Pending reports list (join with bns_reports to include title)
+// ✅ Pending reports list (exclude archived by CNO)
 $pendingReportsListStmt = $pdo->prepare("
   SELECT 
     r.id, r.status, r.report_date,
@@ -48,18 +77,30 @@ $pendingReportsListStmt = $pdo->prepare("
   JOIN users u ON r.user_id = u.id
   JOIN bns_reports b ON b.report_id = r.id
   WHERE r.status = 'Pending'
+  AND NOT EXISTS (
+      SELECT 1 FROM report_archives a
+      WHERE a.report_id = r.id 
+        AND a.user_type = 'CNO'
+        AND a.is_archived = 1
+  )
   ORDER BY r.report_date DESC
 ");
 $pendingReportsListStmt->execute();
 $pendingReportsList = $pendingReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// ✅ Approved reports for sidebar (only show Approved with title)
+// ✅ Approved reports for sidebar (exclude archived by CNO)
 $approvedReportsListStmt = $pdo->prepare("
   SELECT 
     r.id, r.status, r.report_date, b.title
   FROM reports r
   JOIN bns_reports b ON b.report_id = r.id
   WHERE r.status = 'Approved'
+  AND NOT EXISTS (
+      SELECT 1 FROM report_archives a
+      WHERE a.report_id = r.id 
+        AND a.user_type = 'CNO' 
+        AND a.is_archived = 1
+  )
   ORDER BY r.report_date DESC
   LIMIT 5
 ");
@@ -75,227 +116,55 @@ $approvedReportsList = $approvedReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: #f2f4f6;
-    }
-
-    .layout {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-
-    .body-layout {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
+    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f2f4f6; }
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+    .body-layout { display: flex; flex: 1; overflow: hidden; }
 
     /* Sidebar */
-    .sidebar {
-      width: 250px;
-      background: #fff;
-      border-right: 1px solid #ddd;
-      display: flex;
-      flex-direction: column;
-      padding: 15px;
-    }
-
-    .sidebar input {
-      width: 90%;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      margin-bottom: 15px;
-      font-size: 14px;
-    }
-
-    .sidebar h3 {
-      font-size: 16px;
-      margin-bottom: 10px;
-      color: #009688;
-      font-weight: 600;
-    }
-
-    .sidebar ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .sidebar li {
-      font-size: 16px;
-      color: #333;
-      padding: 5px 0;
-      cursor: pointer;
-    }
-
-    .sidebar li:hover {
-      color: #009688;
-    }
-
-    .showmore {
-      margin-top: auto;
-      font-size: 16px;
-      color: #009688;
-      cursor: pointer;
-      margin-bottom: 50px;
-    }
+    .sidebar { width: 250px; background: #fff; border-right: 1px solid #ddd; display: flex; flex-direction: column; padding: 15px; }
+    .sidebar input { width: 90%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 15px; font-size: 14px; }
+    .sidebar h3 { font-size: 16px; margin-bottom: 10px; color: #009688; font-weight: 600; }
+    .sidebar ul { list-style: none; padding: 0; margin: 0; }
+    .sidebar li { font-size: 16px; color: #333; padding: 5px 0; cursor: pointer; }
+    .sidebar li:hover { color: #009688; }
+    .showmore { margin-top: auto; font-size: 16px; color: #009688; cursor: pointer; margin-bottom: 50px; }
 
     /* Main Content */
-    .content {
-      flex: 1;
-      padding: 20px 30px;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-    }
-
-    h2 {
-      font-size: 22px;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
+    .content { flex: 1; padding: 20px 30px; display: flex; flex-direction: column; overflow-y: auto; }
+    h2 { font-size: 22px; font-weight: bold; margin-bottom: 20px; }
 
     /* Dashboard Cards */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin-bottom: 25px;
-    }
-
-    .card {
-      border-radius: 12px;
-      padding: 20px;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .card i {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-
-    .card h4 {
-      font-size: 16px;
-      font-weight: 600;
-      margin: 0 0 10px;
-    }
-
-    .card p {
-      font-size: 30px;
-      font-weight: 700;
-      margin-left: 150px;
-      margin-top: 0px;
-      margin-bottom: 0px;
-    }
-
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px; }
+    .card { border-radius: 12px; padding: 20px; color: white; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .card i { font-size: 24px; margin-bottom: 10px; }
+    .card h4 { font-size: 16px; font-weight: 600; margin: 0 0 10px; }
+    .card p { font-size: 30px; font-weight: 700; margin-left: 150px; margin-top: 0px; margin-bottom: 0px; }
     .card.users { background: #003d3c; }
     .card.reports { background: #006d6a; }
     .card.barangay { background: #009688; }
 
-    .card .sub-info {
-      margin-top: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      align-items: flex-start;
-    }
+    .card .sub-info { margin-top: 15px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+    .sub-info div { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 
-    .sub-info div {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-    }
+    .panel { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .panel-header h3 { font-size: 16px; font-weight: 600; margin: 0; }
+    .view-all { background:white; border:1px solid #999; padding:4px 10px; font-size:14px; border-radius:4px; cursor:pointer; }
 
-    .panel {
-      background: #fff;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 12px 10px; border-bottom: 1px solid #eee; text-align: left; }
+    th { background: #f8f9fa; color: #333; font-weight: 600; }
 
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
+    .report-row { display: flex; align-items: center; gap: 10px; }
+    .report-row img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 
-    .panel-header h3 {
-      font-size: 16px;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    .view-all {
-      background:white;
-      border:1px solid #999;
-      padding:4px 10px;
-      font-size:14px;
-      border-radius:4px;
-      cursor:pointer;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }
-
-    th, td {
-      padding: 12px 10px;
-      border-bottom: 1px solid #eee;
-      text-align: left;
-    }
-
-    th {
-      background: #f8f9fa;
-      color: #333;
-      font-weight: 600;
-    }
-
-    .report-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .report-row img {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-
-    .status-btn {
-      border-radius: 8px;
-      padding: 4px 10px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: capitalize;
-      display: inline-block;
-    }
-
+    .status-btn { border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; text-transform: capitalize; display: inline-block; }
     .status-btn.Pending { background: #fff3cd; color: #856404; }
     .status-btn.Approved { background: #d4edda; color: #155724; }
     .status-btn.Declined { background: #f8d7da; color: #721c24; }
 
-    tr.clickable {
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    tr.clickable:hover {
-      background: #f5f5f5;
-    }
+    tr.clickable { cursor: pointer; transition: background 0.2s; }
+    tr.clickable:hover { background: #f5f5f5; }
   </style>
 </head>
 <body>
