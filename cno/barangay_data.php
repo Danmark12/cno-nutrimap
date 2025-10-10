@@ -61,6 +61,7 @@ $year_filter = $_GET['year'] ?? '';
 $sort = $_GET['sort'] ?? 'date';
 
 // --- Build query ---
+// 🔹 Exclude reports that are archived OR deleted for THIS user/type
 $sql = "
     SELECT r.id, r.report_date, r.report_time, b.title, b.barangay, b.year
     FROM reports r
@@ -68,7 +69,7 @@ $sql = "
     WHERE r.status = 'Approved'
     AND r.id NOT IN (
         SELECT report_id FROM report_archives 
-        WHERE user_id = :uid AND user_type = :utype AND is_archived = 1 AND is_deleted = 0
+        WHERE user_id = :uid AND user_type = :utype AND (is_archived = 1 OR is_deleted = 1)
     )
 ";
 
