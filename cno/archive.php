@@ -42,6 +42,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ");
         $stmt->execute([$userId, $userType]);
 
+        // 🔹 Check all reports if both users deleted
+        $fetch = $pdo->prepare("
+            SELECT DISTINCT report_id FROM report_archives 
+            WHERE user_id = ? AND user_type = ?
+        ");
+        $fetch->execute([$userId, $userType]);
+        $reportIds = $fetch->fetchAll(PDO::FETCH_COLUMN);
+
+        foreach ($reportIds as $rid) {
+            $chk = $pdo->prepare("
+                SELECT 
+                    SUM(CASE WHEN user_type='BNS' AND is_deleted=1 THEN 1 ELSE 0 END) AS bns_deleted,
+                    SUM(CASE WHEN user_type='CNO' AND is_deleted=1 THEN 1 ELSE 0 END) AS cno_deleted
+                FROM report_archives WHERE report_id = :rid
+            ");
+            $chk->execute([':rid' => $rid]);
+            $both = $chk->fetch(PDO::FETCH_ASSOC);
+
+            // ✅ Permanently delete if both deleted
+            if ($both['bns_deleted'] > 0 && $both['cno_deleted'] > 0) {
+                $pdo->prepare("DELETE FROM bns_reports WHERE report_id = :rid")->execute([':rid' => $rid]);
+                $pdo->prepare("DELETE FROM reports WHERE id = :rid")->execute([':rid' => $rid]);
+                $pdo->prepare("DELETE FROM report_archives WHERE report_id = :rid")->execute([':rid' => $rid]);
+                logActivity($pdo, $userId, "Permanently deleted report (ID: $rid) after both users deleted");
+            }
+        }
+
         logActivity($pdo, $userId, "Deleted all archived reports as $userType");
         header("Location: ".$_SERVER['PHP_SELF']."?msg=All archived reports deleted");
         exit();
@@ -95,7 +122,6 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
     .archive-title { font-size:15px; font-weight:600; color:#333; }
     .archive-meta { font-size:13px; color:#555; margin-top:3px; }
 
-    /* Three-dot menu */
     .menu-container { position:relative; }
     .menu-btn { background:none; border:none; cursor:pointer; font-size:18px; color:#555; }
     .menu-content {
@@ -129,12 +155,10 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="body-layout">
   <div class="content">
 
-    <!-- ✅ Success Message -->
     <?php if (isset($_GET['msg'])): ?>
       <div class="msg-box"><?= htmlspecialchars($_GET['msg']) ?></div>
     <?php endif; ?>
 
-    <!-- 🔹 Toolbar -->
     <div class="card">
       <div style="display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
         <h3 style="margin:0;">Archive</h3>
@@ -149,7 +173,6 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <option value="date">Newest → Oldest</option>
           </select>
 
-          <!-- ✅ Fixed Bulk Actions -->
           <form action="" method="post" style="display:inline;" onsubmit="return confirm('Are you sure?');">
             <button type="submit" name="restore_all"><i class="fa fa-undo"></i> Restore All</button>
             <button type="submit" name="delete_all"><i class="fa fa-trash"></i> Delete All</button>
@@ -158,7 +181,6 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
       </div>
     </div>
 
-    <!-- 🔹 Archived reports list -->
     <div class="archive-list" id="archiveList">
       <?php if ($reports): ?>
         <?php foreach ($reports as $r): ?>
@@ -192,7 +214,6 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <script>
-// Toggle menu
 document.querySelectorAll('.menu-btn').forEach(btn => {
   btn.addEventListener('click', function(e) {
     e.stopPropagation();

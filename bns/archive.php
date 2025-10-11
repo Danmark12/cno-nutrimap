@@ -27,21 +27,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             WHERE user_id = ? AND user_type = ? AND is_archived = 1
         ");
         $restore->execute([$userId, $userType]);
-
         logActivity($pdo, $userId, "Restored all archived reports");
         header("Location: archive.php?msg=restored_all");
         exit();
 
     } elseif (isset($_POST['delete_all'])) {
-        // 🔹 Mark all archived reports as deleted (soft delete)
+        // 🔹 STEP 1: Mark all as deleted for this user
         $delete = $pdo->prepare("
             UPDATE report_archives 
-            SET is_deleted = 1 
+            SET is_deleted = 1, deleted_at = NOW()
             WHERE user_id = ? AND user_type = ? AND is_archived = 1
         ");
         $delete->execute([$userId, $userType]);
 
-        logActivity($pdo, $userId, "Deleted all archived reports");
+        // 🔹 STEP 2: Check which reports are now deleted by BOTH users
+        $checkBoth = $pdo->query("
+            SELECT report_id
+            FROM report_archives
+            GROUP BY report_id
+            HAVING SUM(CASE WHEN user_type='BNS' AND is_deleted=1 THEN 1 ELSE 0 END) > 0
+               AND SUM(CASE WHEN user_type='CNO' AND is_deleted=1 THEN 1 ELSE 0 END) > 0
+        ")->fetchAll(PDO::FETCH_COLUMN);
+
+        // 🔹 STEP 3: Permanently delete those reports from all tables
+        if ($checkBoth) {
+            $in = str_repeat('?,', count($checkBoth) - 1) . '?';
+            $pdo->prepare("DELETE FROM bns_reports WHERE report_id IN ($in)")->execute($checkBoth);
+            $pdo->prepare("DELETE FROM reports WHERE id IN ($in)")->execute($checkBoth);
+            $pdo->prepare("DELETE FROM report_archives WHERE report_id IN ($in)")->execute($checkBoth);
+        }
+
+        logActivity($pdo, $userId, "Deleted all archived reports (checked for both sides)");
         header("Location: archive.php?msg=deleted_all");
         exit();
     }
@@ -121,8 +137,6 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <?php include 'header.php'; ?>
     <div class="body-layout">
       <div class="content">
-
-        <!-- 🔹 Search + Sort -->
         <div class="card">
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:10px;">
                 <h3 style="margin:0;">Archive</h3>
@@ -146,7 +160,6 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-        <!-- 🔹 Archived reports list -->
         <div class="archive-list" id="archiveList">
           <?php if ($reports): ?>
             <?php foreach ($reports as $r): ?>
@@ -178,7 +191,6 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
   </div>
 
 <script>
-// Toggle menu
 document.querySelectorAll('.menu-btn').forEach(btn => {
   btn.addEventListener('click', function(e) {
     e.stopPropagation();
@@ -189,40 +201,13 @@ document.addEventListener('click', () => {
   document.querySelectorAll('.menu-container').forEach(c => c.classList.remove('active'));
 });
 
-// 🔹 Reusable search function
-function filterArchive(searchTerm) {
-  const q = searchTerm.toLowerCase();
+document.getElementById('search').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
   document.querySelectorAll('.archive-item').forEach(item => {
     const title = item.querySelector('.archive-title').textContent.toLowerCase();
     const meta = item.querySelector('.archive-meta').textContent.toLowerCase();
     item.style.display = title.includes(q) || meta.includes(q) ? '' : 'none';
   });
-}
-
-// Attach search input
-document.getElementById('search').addEventListener('input', function() {
-  filterArchive(this.value);
-});
-
-// Sort functionality
-document.getElementById('sort').addEventListener('change', function() {
-  const value = this.value;
-  const list = document.getElementById('archiveList');
-  const items = Array.from(list.querySelectorAll('.archive-item'));
-
-  items.sort((a, b) => {
-    if (value === 'title') {
-      return a.querySelector('.archive-title').textContent.localeCompare(
-        b.querySelector('.archive-title').textContent
-      );
-    } else {
-      const dateA = new Date(a.querySelector('.archive-meta').textContent.split('|')[2].trim());
-      const dateB = new Date(b.querySelector('.archive-meta').textContent.split('|')[2].trim());
-      return dateB - dateA;
-    }
-  });
-
-  items.forEach(item => list.appendChild(item));
 });
 </script>
 </body>
