@@ -19,20 +19,49 @@ function logActivity($pdo, $user_id, $action) {
 
 // ✅ Handle Bulk Actions BEFORE fetching reports
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['restore_all'])) {
-        // Restore all archived reports for this user only
-        $stmt = $pdo->prepare("
-            UPDATE report_archives 
-            SET is_archived = 0, is_deleted = 0, deleted_at = NULL 
-            WHERE user_id = ? AND user_type = ?
-        ");
-        $stmt->execute([$userId, $userType]);
 
-        logActivity($pdo, $userId, "Restored all archived reports as $userType");
-        header("Location: ".$_SERVER['PHP_SELF']."?msg=All reports restored");
-        exit();
+    // ✅ RESTORE ALL BUTTON — updated logic
+    if (isset($_POST['restore_all'])) {
+        // 🔹 Check if archived (not deleted) reports exist
+        $check = $pdo->prepare("
+            SELECT COUNT(*) FROM report_archives 
+            WHERE user_id = ? AND user_type = ? AND is_archived = 1 AND is_deleted = 0
+        ");
+        $check->execute([$userId, $userType]);
+        $hasArchives = $check->fetchColumn();
+
+        if ($hasArchives > 0) {
+            // 🔹 Restore all archived reports (not deleted)
+            $stmt = $pdo->prepare("
+                UPDATE report_archives 
+                SET is_archived = 0, archived_at = NULL
+                WHERE user_id = ? AND user_type = ? 
+                  AND is_archived = 1 AND is_deleted = 0
+            ");
+            $stmt->execute([$userId, $userType]);
+
+            // 🔹 Optionally restore the report statuses
+            $updateReports = $pdo->prepare("
+                UPDATE reports 
+                SET status = COALESCE(prev_status, 'Approved')
+                WHERE id IN (
+                    SELECT report_id FROM report_archives 
+                    WHERE user_id = ? AND user_type = ? AND is_deleted = 0
+                )
+            ");
+            $updateReports->execute([$userId, $userType]);
+
+            logActivity($pdo, $userId, "Restored all archived reports as $userType");
+            header("Location: ".$_SERVER['PHP_SELF']."?msg=All archived reports restored successfully!");
+            exit();
+        } else {
+            // 🔹 No archived reports found
+            header("Location: ".$_SERVER['PHP_SELF']."?msg=No archive report found.");
+            exit();
+        }
     }
 
+    // ✅ DELETE ALL BUTTON — unchanged
     if (isset($_POST['delete_all'])) {
         // 🔹 Delete all archived reports for this user only
         $stmt = $pdo->prepare("

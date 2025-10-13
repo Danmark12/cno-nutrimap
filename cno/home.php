@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 
 // ✅ Current user
 $userId = $_SESSION['user_id'] ?? null;
+$userType = 'CNO';
 
 // ✅ Total users (for admin dashboard)
 $totalUsers = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
@@ -23,51 +24,54 @@ $bnsCount = $pdo->query("SELECT COUNT(*) FROM users WHERE user_type='BNS'")->fet
 // ✅ Total barangays
 $totalBarangays = $pdo->query("SELECT COUNT(DISTINCT barangay) FROM users")->fetchColumn();
 
-// ✅ Total reports (exclude archived by CNO)
+// ✅ Total reports (exclude archived or deleted by CNO)
 $totalReportsStmt = $pdo->prepare("
     SELECT COUNT(*) 
     FROM reports r
     WHERE NOT EXISTS (
-        SELECT 1 FROM report_archives a
+        SELECT 1 
+        FROM report_archives a
         WHERE a.report_id = r.id 
-          AND a.user_type = 'CNO' 
-          AND a.is_archived = 1
+          AND a.user_type = 'CNO'
+          AND (a.is_archived = 1 OR a.is_deleted = 1)
     )
 ");
 $totalReportsStmt->execute();
 $totalReports = $totalReportsStmt->fetchColumn();
 
-// ✅ Approved reports (exclude archived by CNO)
+// ✅ Approved reports (exclude archived or deleted by CNO)
 $approvedReportsStmt = $pdo->prepare("
     SELECT COUNT(*) 
     FROM reports r
     WHERE r.status = 'Approved'
     AND NOT EXISTS (
-        SELECT 1 FROM report_archives a
+        SELECT 1 
+        FROM report_archives a
         WHERE a.report_id = r.id 
-          AND a.user_type = 'CNO' 
-          AND a.is_archived = 1
+          AND a.user_type = 'CNO'
+          AND (a.is_archived = 1 OR a.is_deleted = 1)
     )
 ");
 $approvedReportsStmt->execute();
 $approvedReports = $approvedReportsStmt->fetchColumn();
 
-// ✅ Pending reports (exclude archived by CNO)
+// ✅ Pending reports (exclude archived or deleted by CNO)
 $pendingReportsStmt = $pdo->prepare("
     SELECT COUNT(*) 
     FROM reports r
     WHERE r.status = 'Pending'
     AND NOT EXISTS (
-        SELECT 1 FROM report_archives a
+        SELECT 1 
+        FROM report_archives a
         WHERE a.report_id = r.id 
-          AND a.user_type = 'CNO' 
-          AND a.is_archived = 1
+          AND a.user_type = 'CNO'
+          AND (a.is_archived = 1 OR a.is_deleted = 1)
     )
 ");
 $pendingReportsStmt->execute();
 $pendingReports = $pendingReportsStmt->fetchColumn();
 
-// ✅ Pending reports list (exclude archived by CNO)
+// ✅ Pending reports list (exclude archived or deleted by CNO)
 $pendingReportsListStmt = $pdo->prepare("
   SELECT 
     r.id, r.status, r.report_date,
@@ -78,17 +82,18 @@ $pendingReportsListStmt = $pdo->prepare("
   JOIN bns_reports b ON b.report_id = r.id
   WHERE r.status = 'Pending'
   AND NOT EXISTS (
-      SELECT 1 FROM report_archives a
+      SELECT 1 
+      FROM report_archives a
       WHERE a.report_id = r.id 
         AND a.user_type = 'CNO'
-        AND a.is_archived = 1
+        AND (a.is_archived = 1 OR a.is_deleted = 1)
   )
   ORDER BY r.report_date DESC
 ");
 $pendingReportsListStmt->execute();
 $pendingReportsList = $pendingReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// ✅ Approved reports for sidebar (exclude archived by CNO)
+// ✅ Approved reports for sidebar (exclude archived or deleted by CNO)
 $approvedReportsListStmt = $pdo->prepare("
   SELECT 
     r.id, r.status, r.report_date, b.title
@@ -96,10 +101,11 @@ $approvedReportsListStmt = $pdo->prepare("
   JOIN bns_reports b ON b.report_id = r.id
   WHERE r.status = 'Approved'
   AND NOT EXISTS (
-      SELECT 1 FROM report_archives a
+      SELECT 1 
+      FROM report_archives a
       WHERE a.report_id = r.id 
-        AND a.user_type = 'CNO' 
-        AND a.is_archived = 1
+        AND a.user_type = 'CNO'
+        AND (a.is_archived = 1 OR a.is_deleted = 1)
   )
   ORDER BY r.report_date DESC
   LIMIT 5
@@ -279,11 +285,7 @@ $approvedReportsList = $approvedReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
 
       items.forEach(item => {
         const text = item.textContent.toLowerCase();
-        if (text.includes(searchValue) || searchValue === "") {
-          item.style.display = "";
-        } else {
-          item.style.display = "none";
-        }
+        item.style.display = text.includes(searchValue) || searchValue === "" ? "" : "none";
       });
     });
   </script>
