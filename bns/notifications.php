@@ -26,7 +26,7 @@ $stmt = $pdo->prepare("
     FROM notifications n
     JOIN reports r ON n.related_id = r.id
     LEFT JOIN bns_reports br ON br.report_id = r.id
-    LEFT JOIN users u ON u.id = n.sender_id
+    LEFT JOIN users u ON u.id = n.user_id OR u.id = n.sender_id
     WHERE n.user_id = :user_id
       AND n.receiver_type = 'BNS'
       AND (n.type = 'report_approved' OR n.type = 'report_rejected')
@@ -60,15 +60,15 @@ foreach ($notifications as $n) {
 <head>
 <meta charset="UTF-8">
 <title>Notifications - BNS NutriMap</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
 body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
 .container { max-width: 800px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 .header { padding: 15px 20px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: bold; }
 .header a { font-size: 14px; text-decoration: none; color: #009688; }
 .notif-section { padding: 10px 20px; font-weight: bold; color: #555; background: #f9f9f9; margin-top: 10px; }
-.notif-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #eee; text-decoration: none; color: #333; position: relative; }
+.notif-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #eee; text-decoration: none; color: #333; position: relative; transition: all 0.3s ease; }
 .notif-item:hover { background: #f0f0f0; }
 .notif-left { display: flex; align-items: center; flex: 1; }
 .notif-item img { width: 40px; height: 40px; border-radius: 50%; margin-right: 12px; }
@@ -99,6 +99,13 @@ body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 
 <div class="layout">
 <?php include 'header.php'; ?>
 
+<div>
+  <a href="javascript:history.back()" 
+     style="background:#6c757d;color:#fff;padding:6px 12px;border-radius:4px;text-decoration:none; margin-left:1000px;">
+     <i class="fa fa-arrow-left"></i> Back
+  </a>
+</div>
+
 <div class="container">
     <div class="header">
         <span>Notifications</span>
@@ -116,7 +123,7 @@ body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 
                     <div class="text">
                         Your report <strong><?= htmlspecialchars($n['report_title'] ?? 'Untitled') ?></strong> 
                         was <strong><?= htmlspecialchars($n['status']) ?></strong>
-                                                by <strong><?= htmlspecialchars($n['username'] ?? 'Unknown User') ?></strong>.
+                        by <strong><?= htmlspecialchars($n['username'] ?? 'Unknown User') ?></strong>.
                         <div class="time"><?= date("M d, H:i", strtotime($n['created_at'])) ?></div>
                     </div>
                 </div>
@@ -148,14 +155,33 @@ function closeAllMenus() {
 
 document.addEventListener('click', closeAllMenus);
 
+// ✅ Delete notification securely with animation
 function deleteNotif(id) {
     if (!confirm("Delete this notification?")) return;
-    fetch('delete_notification.php?id=' + id)
-        .then(res => res.text())
-        .then(data => {
+    
+    fetch('archive/delete_notification.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'id=' + encodeURIComponent(id)
+    })
+    .then(res => res.text())
+    .then(data => {
+        console.log('Server response:', data);
+        if (data.trim() === 'success') {
             const notif = document.getElementById('notif-' + id);
-            if (notif) notif.remove();
-        });
+            if (notif) {
+                notif.style.transition = 'opacity 0.4s ease';
+                notif.style.opacity = '0';
+                setTimeout(() => notif.remove(), 400);
+            }
+        } else {
+            alert('Failed to delete notification.');
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Error deleting notification.');
+    });
 }
 </script>
 </body>

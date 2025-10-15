@@ -226,26 +226,26 @@ CREATE TABLE `notifications` (
 --
 
 
-CREATE TABLE `notifications` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL, -- Who will receive the notification (CNO or BNS user id)
-  `receiver_type` enum('CNO','BNS') NOT NULL, -- Distinguish if notification is for CNO or BNS
-  `type` enum(
-      'report_submitted',
-      'report_updated',
-      'save_changes',
-      'report_approved',
-      'report_rejected'
-  ) NOT NULL, -- added types for BNS
-  `related_id` int(11) DEFAULT NULL, -- usually report_id
-  `message` varchar(255) NOT NULL,
-  `link` varchar(255) DEFAULT NULL, -- e.g. "view_report.php?id=123"
-  `is_read` tinyint(1) NOT NULL DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_user` (`user_id`),
-  CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  CREATE TABLE `notifications` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `user_id` int(11) NOT NULL, -- Who will receive the notification (CNO or BNS user id)
+    `receiver_type` enum('CNO','BNS') NOT NULL, -- Distinguish if notification is for CNO or BNS
+    `type` enum(
+        'report_submitted',
+        'report_updated',
+        'save_changes',
+        'report_approved',
+        'report_rejected'
+    ) NOT NULL, -- added types for BNS
+    `related_id` int(11) DEFAULT NULL, -- usually report_id
+    `message` varchar(255) NOT NULL,
+    `link` varchar(255) DEFAULT NULL, -- e.g. "view_report.php?id=123"
+    `is_read` tinyint(1) NOT NULL DEFAULT 0,
+    `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+    PRIMARY KEY (`id`),
+    KEY `idx_user` (`user_id`),
+    CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Dumping data for table `notifications`
 --

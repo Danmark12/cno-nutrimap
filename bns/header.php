@@ -189,6 +189,7 @@ foreach ($notifications as $notif) {
   border-bottom: 1px solid #f0f0f0;
   font-size: 13px;
   text-decoration: none;
+  position: relative;
 }
 
 .notif-item img {
@@ -209,6 +210,46 @@ foreach ($notifications as $notif) {
 
 .notif-item.read {
   color: #555;
+}
+
+/* Three-dot menu */
+.menu-container {
+  position: relative;
+}
+
+.menu-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #666;
+}
+
+.menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 20px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 100;
+}
+
+.menu button {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+}
+
+.menu button:hover {
+  background: #f2f2f2;
 }
 </style>
 
@@ -239,40 +280,44 @@ foreach ($notifications as $notif) {
         <?php else: ?>
 
           <?php if (!empty($newNotifs)): ?>
-            <div class="notif-header">
-              <span>New</span>
-            </div>
+            <div class="notif-header"><span>New</span></div>
             <?php foreach ($newNotifs as $notif): ?>
-              <a href="read_notification.php?id=<?= $notif['id'] ?>&report=<?= $notif['report_id'] ?>" 
-                 class="notif-item <?= $notif['is_read'] ? 'read' : 'unread' ?>">
+              <div class="notif-item <?= $notif['is_read'] ? 'read' : 'unread' ?>" id="notif-<?= $notif['id'] ?>">
                 <img src="../uploads/<?= htmlspecialchars($notif['profile_pic'] ?? 'default.png') ?>" alt="User">
                 <div class="notif-text">
                   <strong><?= htmlspecialchars($notif['username'] ?? 'Unknown User') ?></strong><br>
-                  Your report <strong><?= htmlspecialchars($notif['title']) ?></strong> 
-                  was <strong style="color:black;"><?= $notif['status'] ?></strong>
-                  <br>
+                  Your report <strong><?= htmlspecialchars($notif['title']) ?></strong>
+                  was <strong style="color:black;"><?= $notif['status'] ?></strong><br>
                   <small><?= date("M d, Y H:i", strtotime($notif['created_at'])) ?></small>
                 </div>
-              </a>
+                <div class="menu-container">
+                  <button class="menu-button">⋮</button>
+                  <div class="menu">
+                    <button class="delete-btn" data-id="<?= $notif['id'] ?>">Delete</button>
+                  </div>
+                </div>
+              </div>
             <?php endforeach; ?>
           <?php endif; ?>
 
           <?php if (!empty($earlierNotifs)): ?>
-            <div class="notif-header">
-              <span>Earlier</span>
-            </div>
+            <div class="notif-header"><span>Earlier</span></div>
             <?php foreach ($earlierNotifs as $notif): ?>
-              <a href="read_notification.php?id=<?= $notif['id'] ?>&report=<?= $notif['report_id'] ?>" 
-                 class="notif-item <?= $notif['is_read'] ? 'read' : 'unread' ?>">
+              <div class="notif-item <?= $notif['is_read'] ? 'read' : 'unread' ?>" id="notif-<?= $notif['id'] ?>">
                 <img src="../uploads/<?= htmlspecialchars($notif['profile_pic'] ?? 'default.png') ?>" alt="User">
                 <div class="notif-text">
                   <strong><?= htmlspecialchars($notif['username'] ?? 'Unknown User') ?></strong><br>
-                  Your report <strong><?= htmlspecialchars($notif['title']) ?></strong> 
-                  was <strong style="color:black;"><?= $notif['status'] ?></strong>
-                  <br>
+                  Your report <strong><?= htmlspecialchars($notif['title']) ?></strong>
+                  was <strong style="color:black;"><?= $notif['status'] ?></strong><br>
                   <small><?= date("M d, Y H:i", strtotime($notif['created_at'])) ?></small>
                 </div>
-              </a>
+                <div class="menu-container">
+                  <button class="menu-button">⋮</button>
+                  <div class="menu">
+                    <button class="delete-btn" data-id="<?= $notif['id'] ?>">Delete</button>
+                  </div>
+                </div>
+              </div>
             <?php endforeach; ?>
           <?php endif; ?>
 
@@ -283,7 +328,6 @@ foreach ($notifications as $notif) {
 </header>
 
 <div id="sidemenu-container"></div>
-
 <script>
 document.getElementById('menuBtn').addEventListener('click', async () => {
   const container = document.getElementById('sidemenu-container');
@@ -293,8 +337,12 @@ document.getElementById('menuBtn').addEventListener('click', async () => {
     container.innerHTML = html;
     const menu = document.getElementById('sideMenu');
     if (!menu) return;
+
+    // 🔒 Close button behavior
     const closeBtn = menu.querySelector('.close-btn');
     if (closeBtn) closeBtn.addEventListener('click', () => menu.classList.remove('open'));
+
+    // 📄 Menu item click navigation
     const menuItems = menu.querySelectorAll('.menu-links li[data-url]');
     menuItems.forEach(item => {
       item.addEventListener('click', () => {
@@ -303,39 +351,27 @@ document.getElementById('menuBtn').addEventListener('click', async () => {
         menu.classList.remove('open');
       });
     });
-    const footerLinks = menu.querySelectorAll('.footer-links > a');
-    footerLinks.forEach(link => {
-      link.addEventListener('click', () => menu.classList.remove('open'));
-    });
-    const profileBtn = menu.querySelector('#userProfileBtn');
-    if (profileBtn) {
-      profileBtn.addEventListener('click', () => {
+
+    // 👤 User profile click
+    const userProfileBtn = document.getElementById('userProfileBtn');
+    if (userProfileBtn) {
+      userProfileBtn.addEventListener('click', () => {
         window.location.href = 'profile.php';
-        menu.classList.remove('open');
       });
     }
-    const settingsBtn = menu.querySelector('#settingsBtn');
-    const settingsMenu = menu.querySelector('#settingsMenu');
+
+    // ⚙️ Settings dropdown toggle
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsMenu = document.getElementById('settingsMenu');
     if (settingsBtn && settingsMenu) {
-      settingsBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
-      });
-      document.addEventListener('click', (e) => {
-        if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) {
-          settingsMenu.style.display = 'none';
-        }
-      });
-      const settingsItems = settingsMenu.querySelectorAll('li[data-url]');
-      settingsItems.forEach(item => {
-        item.addEventListener('click', () => {
-          const url = item.getAttribute('data-url');
-          if (url) window.location.href = url;
-          menu.classList.remove('open');
-        });
+      settingsBtn.addEventListener('click', () => {
+        settingsBtn.classList.toggle('open');
+        settingsMenu.style.display = settingsMenu.style.display === 'flex' ? 'none' : 'flex';
       });
     }
   }
+
+  // 🟢 Open menu when clicked
   const menu = document.getElementById('sideMenu');
   if (menu) menu.classList.add('open');
 });
@@ -352,5 +388,49 @@ document.addEventListener('click', function(e) {
   if (!bell.contains(e.target)) {
     menu.style.display = 'none';
   }
+});
+
+// ⋮ Toggle delete menu
+document.querySelectorAll('.menu-button').forEach(button => {
+  button.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const menu = button.nextElementSibling;
+    document.querySelectorAll('.menu').forEach(m => {
+      if (m !== menu) m.style.display = 'none';
+    });
+    menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+  });
+});
+
+// Close menu when clicking elsewhere
+document.addEventListener('click', () => {
+  document.querySelectorAll('.menu').forEach(m => m.style.display = 'none');
+});
+
+// ✅ Delete notification logic
+document.querySelectorAll('.delete-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.getAttribute('data-id');
+    if (confirm('Delete this notification?')) {
+      fetch('archive/delete_notification.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'id=' + encodeURIComponent(id)
+      })
+      .then(res => res.text())
+      .then(response => {
+        console.log('Server response:', response);
+        if (response.trim() === 'success') {
+          document.getElementById('notif-' + id).remove();
+        } else {
+          alert('Failed to delete notification.');
+        }
+      })
+      .catch(err => {
+        console.error('Fetch error:', err);
+        alert('Error connecting to server.');
+      });
+    }
+  });
 });
 </script>
