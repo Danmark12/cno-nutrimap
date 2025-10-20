@@ -144,7 +144,7 @@
             <li><a href="home.php" class="nav-link active">HOME</a></li>
             <li><a href="map.php" class="nav-link">NUTRITIONAL MAP</a></li>
             <li class="dropdown">
-                <a href="about.php" class="nav-link">GET TO KNOW US ▾</a>
+                <a href="" class="nav-link">GET TO KNOW US ▾</a>
                 <ul class="dropdown-menu">
                     <li><a href="organizational_chart.php">Organizational Chart</a></li>
                     <li><a href="mission.php">Mission</a></li>
