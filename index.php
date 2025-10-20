@@ -8,6 +8,6 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // ✅ Automatically redirect to your homepage
 // (You can use require if you want to directly load its content instead of redirect)
-header("Location: landing page/home.php");
+header("Location: landing_page/home.php");
 exit();
 ?>

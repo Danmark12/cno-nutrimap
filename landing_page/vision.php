@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CNO NutriMap | Mission</title>
+  <title>CNO NutriMap | Vision</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     * {
@@ -15,12 +15,12 @@
 
     body {
       background-color: #fff;
-      color: #333;
+      color: #1b1b1bff;
       line-height: 1.6;
     }
 
-    /* Mission Section */
-    .mission-section {
+    /* Vision Section */
+    .vision-section {
       min-height: 70vh;
       display: flex;
       flex-direction: column;
@@ -28,30 +28,30 @@
       justify-content: center;
       padding: 60px 20px;
       text-align: center;
-    }
+    } 
 
-    .mission-card {
-      background: #fff;
+    .vision-card {
+      background: #ffffff73;
       border-radius: 20px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.39);
       max-width: 800px;
       padding: 60px 40px;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
-    .mission-card:hover {
+    .vision-card:hover {
       transform: translateY(-5px);
       box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     }
 
-    .mission-card h1 {
+    .vision-card h1 {
       color: #00b3b3;
       font-size: 36px;
       margin-bottom: 20px;
       font-weight: 700;
     }
 
-    .mission-card p {
+    .vision-card p {
       font-size: 18px;
       color: #444;
       line-height: 1.8;
@@ -70,11 +70,11 @@
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .mission-card {
+    .vision-card {
       animation: fadeIn 1s ease forwards;
     }
 
-    /* Footer (copied from home page) */
+    /* Footer */
     footer {
       background-color: #013241;
       color: #f9f9f9;
@@ -146,10 +146,10 @@
     }
 
     @media (max-width: 600px) {
-      .mission-card {
+      .vision-card {
         padding: 40px 25px;
       }
-      .mission-card h1 {
+      .vision-card h1 {
         font-size: 28px;
       }
       footer {
@@ -161,11 +161,11 @@
 <body>
   <?php include 'header.php'; ?>
 
-  <section class="mission-section">
-    <div class="mission-card">
-      <h1>Our Mission</h1>
+  <section class="vision-section">
+    <div class="vision-card">
+      <h1>Our Vision</h1>
       <div class="divider"></div>
-      <p>Safeguard the nutrition integrity and well-being of Tagnipan-ons through pro-active nutrition program implementation.</p>
+      <p>Healthy Tagnipan-ons through Committed, People-Centered and Excellent Nutrition Services.</p>
     </div>
   </section>
 
