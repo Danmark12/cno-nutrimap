@@ -1,0 +1,223 @@
+<?php
+session_start();
+require '../db/config.php';
+
+// Handle form submission
+$message = "";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $first_name = trim($_POST['first_name']);
+    $last_name = trim($_POST['last_name']);
+    $username = trim($_POST['username']);
+    $phone_number = trim($_POST['phone_number']);
+    $email = trim($_POST['email']);
+    $address = trim($_POST['address']);
+    $barangay = isset($_POST['barangay']) ? $_POST['barangay'] : null;
+    $user_type = $_POST['user_type']; 
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+
+    // If user_type = CNO, force barangay = 'CNO'
+    if ($user_type === 'CNO') {
+        $barangay = 'CNO';
+    }
+
+    if ($password !== $confirm_password) {
+        $message = "⚠️ Passwords do not match!";
+    } else {
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+
+        $stmt = $pdo->prepare("INSERT INTO users 
+            (first_name, last_name, username, email, phone_number, address, barangay, user_type, password_hash) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        try {
+            $stmt->execute([$first_name, $last_name, $username, $email, $phone_number, $address, $barangay, $user_type, $hash]);
+            $message = "✅ Account created successfully!";
+
+            // ✅ Log activity
+            if (isset($_SESSION['user_id'])) {
+                $creator_id = $_SESSION['user_id']; // the one creating the account
+                $logStmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action, created_at) VALUES (?, ?, NOW())");
+                $logStmt->execute([
+                    $creator_id,
+                    "Created new account: {$first_name} {$last_name} ({$username}) - Role: {$user_type}, Barangay: {$barangay}"
+                ]);
+            }
+
+        } catch (PDOException $e) {
+            if ($e->errorInfo[1] == 1062) { // duplicate entry
+                $message = "⚠️ Username or Email already exists!";
+            } else {
+                $message = "❌ Error: " . $e->getMessage();
+            }
+        }
+    }
+}
+?>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Account - CNO NutriMap</title>
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+        }
+.back-btn {
+    position: static;   /* remove absolute */
+    background: #0d9488;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+}
+.back-btn:hover {
+    background: #0b7a70;
+}
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 40px;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 420px;
+        }
+        .card h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        input, select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            width: 100%;
+        }
+        .row {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background: #0d9488;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0b7a70;
+        }
+        p.message {
+            text-align: center;
+            color: red;
+        }
+        
+    </style>
+</head>
+<body>
+      <div class="layout">
+    <?php include 'header.php'; ?>
+
+<div class="card1">
+    
+    <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 10px;margin-right: 50px;">
+        <a href="users.php" class="back-btn"><i class="fa fa-arrow-left"></i> Back</a>
+    </div>
+</div>
+
+
+
+    <!-- Register Card -->
+    <div class="container">
+
+        <div class="card">
+            <h2>Create Account</h2>
+
+            <?php if ($message): ?>
+                <p class="message"><?= $message ?></p>
+            <?php endif; ?>
+
+            <form method="POST">
+                <div class="row">
+                    <input type="text" name="first_name" placeholder="First Name" required>
+                    <input type="text" name="last_name" placeholder="Last Name" required>
+                </div>
+
+                <div class="row">
+                    <input type="text" name="username" placeholder="Username" required>
+                    <input type="text" name="phone_number" placeholder="Phone No." required>
+                </div>
+
+                <input type="email" name="email" placeholder="Email" required>
+                <input type="text" name="address" placeholder="Address" required>
+
+                <div class="row">
+                    <select name="barangay" id="barangay" required>
+                        <option value="">Select Barangay</option>
+                        <option value="Amoros">Amoros</option>
+                        <option value="Bolisong">Bolisong</option>
+                        <option value="Cogon">Cogon</option>
+                        <option value="Himaya">Himaya</option>
+                        <option value="Hinigdaan">Hinigdaan</option>
+                        <option value="Kalabaylabay">Kalabaylabay</option>
+                        <option value="Molugan">Molugan</option>
+                        <option value="Pedro S. Baculio">Pedro S. Baculio</option>
+                        <option value="Poblacion">Poblacion</option>
+                        <option value="Quibonbon">Quibonbon</option>
+                        <option value="Sambulawan">Sambulawan</option>
+                        <option value="San Francisco de Asis">San Francisco de Asis</option>
+                        <option value="Sinaloc">Sinaloc</option>
+                        <option value="Taytay">Taytay</option>
+                        <option value="Ulaliman">Ulaliman</option>
+                    </select>
+
+                    <select name="user_type" id="user_type" required onchange="toggleBarangay()">
+                        <option value="">Select User Type</option>
+                        <option value="BNS">BNS</option>
+                        <option value="CNO">CNO</option>
+                    </select>
+                </div>
+
+                <input type="password" name="password" placeholder="Password" required>
+                <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+
+                <button type="submit">Register</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleBarangay() {
+            const userType = document.getElementById("user_type").value;
+            const barangaySelect = document.getElementById("barangay");
+
+            if (userType === "CNO") {
+                barangaySelect.value = "CNO";
+                barangaySelect.disabled = true;
+            } else {
+                barangaySelect.disabled = false;
+            }
+        }
+    </script>
+    </div>
+</body>
+</html>
