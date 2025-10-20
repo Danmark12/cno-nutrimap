@@ -117,6 +117,78 @@
       color: #666;
     }
 
+    /* Footer */
+    footer {
+      background-color: #013241;
+      color: #f9f9f9;
+      padding: 80px 80px 20px;
+      text-align: left;
+      position: relative;
+      z-index: 1;
+      margin-top: 60px;
+    }
+
+    .footer-container {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-logo h2 {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .footer-logo span {
+      color: #00b3b3;
+    }
+
+    .footer-about {
+      max-width: 400px;
+    }
+
+    .footer-about p {
+      margin-top: 10px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #ddd;
+    }
+
+    .footer-contact h3,
+    .footer-social h3 {
+      color: #00e0d1;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    .footer-contact p {
+      font-size: 15px;
+      margin-bottom: 5px;
+      color: #ccc;
+    }
+
+    .footer-social a {
+      color: #00b3b3;
+      font-size: 20px;
+      margin-right: 15px;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+
+    .footer-social a:hover {
+      color: #00e0d1;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid #333;
+      text-align: center;
+      padding-top: 15px;
+      font-size: 14px;
+      color: #aaa;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .contact-card {
@@ -124,6 +196,9 @@
       }
       .map {
         height: 250px;
+      }
+      footer {
+        padding: 40px 20px 15px;
       }
     }
   </style>
@@ -191,5 +266,38 @@
       </div>
     </div>
   </div>
+
+  <!-- Footer Section -->
+  <footer>
+    <div class="footer-container">
+      <div class="footer-logo">
+        <h2><span>CNO</span> NutriMap</h2>
+        <div class="footer-about">
+          <p>
+            Dedicated to improving the nutritional health of our community through
+            data-driven insights, collaboration, and sustainable nutrition programs.
+          </p>
+        </div>
+      </div>
+
+      <div class="footer-contact">
+        <h3>Contact Us</h3>
+        <p><i class="fa-solid fa-location-dot"></i> El Salvador, Misamis Oriental</p>
+        <p><i class="fa-solid fa-envelope"></i> cnonutrimap@gmail.com</p>
+        <p><i class="fa-solid fa-phone"></i> +63 912 345 6789</p>
+      </div>
+
+      <div class="footer-social">
+        <h3>Follow Us</h3>
+        <a href="#"><i class="fab fa-facebook"></i></a>
+        <a href="#"><i class="fab fa-twitter"></i></a>
+        <a href="#"><i class="fab fa-instagram"></i></a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>&copy; 2025 City Nutrition Office | All Rights Reserved.</p>
+    </div>
+  </footer>
 </body>
 </html>
