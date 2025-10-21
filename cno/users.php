@@ -9,6 +9,9 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+$currentUserId = $_SESSION['user_id'];
+$currentUserType = $_SESSION['user_type'] ?? '';
+
 // Default filters
 $search = $_GET['search'] ?? '';
 $roleFilter = $_GET['role'] ?? 'all';
@@ -230,8 +233,13 @@ $inactiveUsers = $inactiveUsersStmt->fetchAll(PDO::FETCH_ASSOC);
                     <td class="action-wrapper">
                       <button class="action-btn" onclick="toggleDropdown(<?= $user['id'] ?>)">⋮</button>
                       <div class="dropdown" id="dropdown-<?= $user['id'] ?>">
-                        <a href="profile.php?id=<?= $user['id'] ?>"><i class="fa fa-user"></i> View Profile</a>
-                       <a href="user/deactivate_user.php?id=<?= $user['id'] ?>"><i class="fa fa-ban"></i> Deactivate</a>                      </div>
+                        <?php if ($currentUserType === 'CNO'): ?>
+                          <a href="view_profile.php?id=<?= $user['id'] ?>"><i class="fa fa-user"></i> View Profile</a>
+                        <?php else: ?>
+                          <a href="view_profile.php?id=<?= $currentUserId ?>"><i class="fa fa-user"></i> View My Profile</a>
+                        <?php endif; ?>
+                        <a href="user/deactivate_user.php?id=<?= $user['id'] ?>"><i class="fa fa-ban"></i> Deactivate</a>
+                      </div>
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -270,8 +278,12 @@ $inactiveUsers = $inactiveUsersStmt->fetchAll(PDO::FETCH_ASSOC);
                     <td class="action-wrapper">
                       <button class="action-btn" onclick="toggleDropdown(<?= $user['id'] ?>)">⋮</button>
                       <div class="dropdown" id="dropdown-<?= $user['id'] ?>">
-                        <a href="profile.php?id=<?= $user['id'] ?>"><i class="fa fa-user"></i> View Profile</a>
-<a href="user/activate_user.php?id=<?= $user['id'] ?>"><i class="fa fa-check"></i> Activate</a>
+                        <?php if ($currentUserType === 'CNO'): ?>
+                          <a href="view_profile.php?id=<?= $user['id'] ?>"><i class="fa fa-user"></i> View Profile</a>
+                        <?php else: ?>
+                          <a href="view_profile.php?id=<?= $currentUserId ?>"><i class="fa fa-user"></i> View My Profile</a>
+                        <?php endif; ?>
+                        <a href="user/activate_user.php?id=<?= $user['id'] ?>"><i class="fa fa-check"></i> Activate</a>
                       </div>
                     </td>
                   </tr>
