@@ -26,53 +26,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die("This report cannot be edited.");
     }
 
-    // 🔹 Collect all BNS inputs
+    // ✅ Collect all BNS inputs (UPDATED LIST)
     $fields = [
         'title' => $_POST['title'] ?? null,
         'barangay' => $_POST['barangay'] ?? null,
         'year' => $_POST['year'] ?? null,
+
+        'ind1' => $_POST['ind1'] ?? null,
+        'ind_male' => $_POST['ind_male'] ?? null,
+        'ind_female' => $_POST['ind_female'] ?? null,
+        'ind2' => $_POST['ind2'] ?? null,
+        'ind3' => $_POST['ind3'] ?? null,
+        'ind4' => $_POST['ind4'] ?? null,
+        'ind5' => $_POST['ind5'] ?? null,
+
+        'ind6a' => $_POST['ind6a'] ?? null,
+        'ind6b' => $_POST['ind6b'] ?? null,
+        'ind7' => $_POST['ind7'] ?? null,
+        'ind8' => $_POST['ind8'] ?? null,
+
+        'ind9a' => $_POST['ind9a'] ?? null,
     ];
 
-    // --- Single indicators
-    $singleIndicators = [
-        'ind1','ind2','ind3','ind4a','ind4b','ind5','ind6','ind7a','ind8','ind9','ind10','ind11',
-        'ind12','ind13','ind14','ind16','ind17','ind18','ind19','ind21','ind22','ind23','ind24','ind25',
-        'ind31','ind32','ind33','ind34','ind35a','ind35b','ind36'
-    ];
-    foreach ($singleIndicators as $ind) {
-        $fields[$ind] = $_POST[$ind] ?? null;
-    }
-
-    // --- Multi-part indicators
+    // ✅ ind9b 1-9 NO + PCT
     for ($i = 1; $i <= 9; $i++) {
-        $fields["ind7b{$i}_no"] = $_POST["ind7b{$i}_no"] ?? null;
-        $fields["ind7b{$i}_pct"] = $_POST["ind7b{$i}_pct"] ?? null;
+        $fields["ind9b{$i}_no"]  = $_POST["ind9b{$i}_no"]  ?? null;
+        $fields["ind9b{$i}_pct"] = $_POST["ind9b{$i}_pct"] ?? null;
     }
 
-    $fields['ind15a_public'] = $_POST['ind15a_public'] ?? null;
-    $fields['ind15a_private'] = $_POST['ind15a_private'] ?? null;
-    $fields['ind15b_public'] = $_POST['ind15b_public'] ?? null;
-    $fields['ind15b_private'] = $_POST['ind15b_private'] ?? null;
+    // ✅ Continue collecting fields
+    $extraFields = [
+        'ind10','ind11','ind12','ind13','ind14','ind15','ind16',
+        'ind18','ind19','ind20','ind21',
+        'ind23','ind24','ind25','ind26',
+        'ind38',
+        'ind37a','ind37b'
+    ];
 
+    foreach ($extraFields as $f) {
+        $fields[$f] = $_POST[$f] ?? null;
+    }
+
+    // ✅ ind17a,b (public/private)
+    foreach (['a','b'] as $letter) {
+        $fields["ind17{$letter}_public"] = $_POST["ind17{$letter}_public"] ?? null;
+        $fields["ind17{$letter}_private"] = $_POST["ind17{$letter}_private"] ?? null;
+    }
+
+    // ✅ ind22 a-g
+    foreach (['a','b','c','d','e','f','g'] as $letter) {
+        $fields["ind22{$letter}_no"] = $_POST["ind22{$letter}_no"] ?? null;
+        $fields["ind22{$letter}_pct"] = $_POST["ind22{$letter}_pct"] ?? null;
+    }
+
+    // ✅ ind27 a-e
     foreach (['a','b','c','d','e'] as $letter) {
-        $fields["ind20{$letter}_no"] = $_POST["ind20{$letter}_no"] ?? null;
-        $fields["ind20{$letter}_pct"] = $_POST["ind20{$letter}_pct"] ?? null;
+        $fields["ind27{$letter}_no"] = $_POST["ind27{$letter}_no"] ?? null;
+        $fields["ind27{$letter}_pct"] = $_POST["ind27{$letter}_pct"] ?? null;
     }
 
-    foreach (['26','27'] as $num) {
-        foreach (['a','b','c','d'] as $letter) {
-            $fields["ind{$num}{$letter}_no"] = $_POST["ind{$num}{$letter}_no"] ?? null;
-            $fields["ind{$num}{$letter}_pct"] = $_POST["ind{$num}{$letter}_pct"] ?? null;
-        }
-    }
-    foreach (['28','29','30'] as $num) {
-        foreach (['a','b','c','d','e'] as $letter) {
-            $fields["ind{$num}{$letter}_no"] = $_POST["ind{$num}{$letter}_no"] ?? null;
-            $fields["ind{$num}{$letter}_pct"] = $_POST["ind{$num}{$letter}_pct"] ?? null;
-        }
+    // ✅ ind28 a-d
+    foreach (['a','b','c','d'] as $letter) {
+        $fields["ind28{$letter}_no"] = $_POST["ind28{$letter}_no"] ?? null;
+        $fields["ind28{$letter}_pct"] = $_POST["ind28{$letter}_pct"] ?? null;
     }
 
-    // 🔹 Update bns_reports
+    // ✅ ind29 a-g
+    foreach (['a','b','c','d','e','f','g'] as $letter) {
+        $fields["ind29{$letter}_no"] = $_POST["ind29{$letter}_no"] ?? null;
+        $fields["ind29{$letter}_pct"] = $_POST["ind29{$letter}_pct"] ?? null;
+    }
+
+    // ✅ ind30 a-d
+    foreach (['a','b','c','d'] as $letter) {
+        $fields["ind30{$letter}_no"] = $_POST["ind30{$letter}_no"] ?? null;
+        $fields["ind30{$letter}_pct"] = $_POST["ind30{$letter}_pct"] ?? null;
+    }
+
+    // ✅ ind31 a-f
+    foreach (['a','b','c','d','e','f'] as $letter) {
+        $fields["ind31{$letter}_no"] = $_POST["ind31{$letter}_no"] ?? null;
+        $fields["ind31{$letter}_pct"] = $_POST["ind31{$letter}_pct"] ?? null;
+    }
+
+    // ✅ ind32, ind33, ind34, ind35, ind36 NO + PCT
+    foreach (['32','33','34','35','36'] as $num) {
+        $fields["ind{$num}_no"] = $_POST["ind{$num}_no"] ?? null;
+        $fields["ind{$num}_pct"] = $_POST["ind{$num}_pct"] ?? null;
+    }
+
+    // ✅ Update bns_reports
     $updateFields = [];
     foreach ($fields as $k => $v) {
         $updateFields[] = "$k = :$k";
@@ -84,11 +127,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fields['report_id'] = $reportId;
     $stmt->execute($fields);
 
-    // 🔹 Update report status to Pending
+    // ✅ Update status (notify CNO)
     $stmt = $pdo->prepare("UPDATE reports SET status = 'Pending', prev_status = NULL WHERE id = :id");
-    $stmt->execute(['id' => $reportId]); // ✅ prev_status=NULL triggers CNO notification
+    $stmt->execute(['id' => $reportId]);
 
-    // 🔹 Log the activity
+    // ✅ Log activity
     $logStmt = $pdo->prepare("
         INSERT INTO activity_logs (user_id, action, details, created_at)
         VALUES (:user_id, :action, :details, NOW())
@@ -99,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ':details' => "Report ID {$reportId} was edited and reset to Pending"
     ]);
 
-    // 📧 Send email notification (to CNO or Admin) with report title and sender
+    // ✅ Email CNO
     $stmt = $pdo->prepare("
         SELECT u.email, u.first_name, u.last_name
         FROM users u
@@ -112,10 +155,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($cnoUser && !empty($cnoUser['email'])) {
         $to = $cnoUser['email'];
         $subject = "Report Updated - Pending Review";
-
         $reportTitle = htmlspecialchars($fields['title']);
-        
-        // Get sender name from users table
+
         $userStmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
         $userStmt->execute(['id' => $_SESSION['user_id']]);
         $sender = $userStmt->fetch(PDO::FETCH_ASSOC);
@@ -123,18 +164,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $message = "
             Hello,<br><br>
-            A report titled <strong>$reportTitle</strong> has been updated by <strong>$senderName</strong> 
+            A report titled <strong>$reportTitle</strong> has been updated by <strong>$senderName</strong>
             and is now pending your review.<br><br>
             <strong>Date:</strong> " . date('Y-m-d') . "<br><br>
             Please review it in the system.
         ";
 
         sendEmailNotification($to, $subject, $message);
-    } else {
-        error_log("DEBUG: No CNO user found or email is empty");
     }
 
-    // 🔹 Redirect
+    // ✅ Redirect
     header("Location: ../reports.php?id=$reportId&msg=updated");
     exit();
 }

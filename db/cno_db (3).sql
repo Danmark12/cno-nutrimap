@@ -40,9 +40,183 @@ CREATE TABLE `activity_logs` (
 
 -- --------------------------------------------------------
 
+
+CREATE TABLE `bns_reports` (
+  `id` int(11) NOT NULL,
+  `report_id` int(11) NOT NULL,
+  `barangay` varchar(100) NOT NULL,
+  `year` year(4) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `ind1` int(11) DEFAULT NULL,
+    `ind_male` int(11) DEFAULT NULL,
+  `ind_female` int(11) DEFAULT NULL,
+  
+  `ind2` int(11) DEFAULT NULL,
+  `ind3` int(11) DEFAULT NULL,
+    `ind4` int(11) DEFAULT NULL,
+  `ind5` int(11) DEFAULT NULL,
+
+  `ind6a` int(11) DEFAULT NULL,
+  `ind6b` int(11) DEFAULT NULL,
+
+  `ind7` int(11) DEFAULT NULL,
+
+  `ind8` int(11) DEFAULT NULL,
+
+  `ind9a` decimal(5,2) DEFAULT NULL,
+  `ind9b1_no` int(11) DEFAULT NULL,
+  `ind9b1_pct` decimal(5,2) DEFAULT NULL,
+  `ind9b2_no` int(11) DEFAULT NULL,
+  `ind9b2_pct` decimal(5,2) DEFAULT NULL,
+  `ind9b3_no` int(11) DEFAULT NULL,
+  `ind9b3_pct` decimal(5,2) DEFAULT NULL,
+  `ind9b4_no` int(11) DEFAULT NULL,
+  `ind9b4_pct` decimal(5,2) DEFAULT NULL,
+  `ind9b5_no` int(11) DEFAULT NULL,
+  `ind9b5_pct` decimal(5,2) DEFAULT NULL,
+  `ind9b6_no` int(11) DEFAULT NULL,
+  `ind9b6_pct` decimal(5,2) DEFAULT NULL,
+  `ind9b7_no` int(11) DEFAULT NULL,
+  `ind9b7_pct` decimal(5,2) DEFAULT NULL,
+  `ind9b8_no` int(11) DEFAULT NULL,
+  `ind9b8_pct` decimal(5,2) DEFAULT NULL,
+  `ind9b9_no` int(11) DEFAULT NULL,
+  `ind9b9_pct` decimal(5,2) DEFAULT NULL,
+
+  `ind10` int(11) DEFAULT NULL,
+  `ind11` int(11) DEFAULT NULL,
+  `ind12` int(11) DEFAULT NULL,
+  `ind13` int(11) DEFAULT NULL,
+  `ind14` int(11) DEFAULT NULL,
+  `ind15` int(11) DEFAULT NULL,
+  `ind16` int(11) DEFAULT NULL,
+
+  `ind17a_public` int(11) DEFAULT NULL,
+  `ind17a_private` int(11) DEFAULT NULL,
+  `ind17b_public` int(11) DEFAULT NULL,
+  `ind17b_private` int(11) DEFAULT NULL,
+
+  `ind18` int(11) DEFAULT NULL,
+  `ind19` int(11) DEFAULT NULL,
+  `ind20` int(11) DEFAULT NULL,
+  `ind21` decimal(5,2) DEFAULT NULL,
+
+  `ind22a_no` int(11) DEFAULT NULL,
+  `ind22a_pct` decimal(5,2) DEFAULT NULL,
+  `ind22b_no` int(11) DEFAULT NULL,
+  `ind22b_pct` decimal(5,2) DEFAULT NULL,
+  `ind22c_no` int(11) DEFAULT NULL,
+  `ind22c_pct` decimal(5,2) DEFAULT NULL,
+  `ind22d_no` int(11) DEFAULT NULL,
+  `ind22d_pct` decimal(5,2) DEFAULT NULL,
+  `ind22e_no` int(11) DEFAULT NULL,
+  `ind22e_pct` decimal(5,2) DEFAULT NULL,
+  `ind22f_no` int(11) DEFAULT NULL,
+  `ind22f_pct` decimal(5,2) DEFAULT NULL,
+  `ind22g_no` int(11) DEFAULT NULL,
+  `ind22g_pct` decimal(5,2) DEFAULT NULL,
+
+
+  `ind23` int(11) DEFAULT NULL,
+  `ind24` int(11) DEFAULT NULL,
+  `ind25` int(11) DEFAULT NULL,
+  `ind26` int(11) DEFAULT NULL,
+  -- `ind27` int(11) DEFAULT NULL,
+
+
+  `ind27a_no` int(11) DEFAULT NULL,
+  `ind27a_pct` decimal(5,2) DEFAULT NULL,
+  `ind27b_no` int(11) DEFAULT NULL,
+  `ind27b_pct` decimal(5,2) DEFAULT NULL,
+  `ind27c_no` int(11) DEFAULT NULL,
+  `ind27c_pct` decimal(5,2) DEFAULT NULL,
+  `ind27d_no` int(11) DEFAULT NULL,
+  `ind27d_pct` decimal(5,2) DEFAULT NULL,
+  `ind27e_no` int(11) DEFAULT NULL,
+  `ind27e_pct` decimal(5,2) DEFAULT NULL,
+
+
+  `ind28a_no` int(11) DEFAULT NULL,
+  `ind28a_pct` decimal(5,2) DEFAULT NULL,
+  `ind28b_no` int(11) DEFAULT NULL,
+  `ind28b_pct` decimal(5,2) DEFAULT NULL,
+  `ind28c_no` int(11) DEFAULT NULL,
+  `ind28c_pct` decimal(5,2) DEFAULT NULL,
+  `ind28d_no` int(11) DEFAULT NULL,
+  `ind28d_pct` decimal(5,2) DEFAULT NULL,
+
+
+  `ind29a_no` int(11) DEFAULT NULL,
+  `ind29a_pct` decimal(5,2) DEFAULT NULL,
+  `ind29b_no` int(11) DEFAULT NULL,
+  `ind29b_pct` decimal(5,2) DEFAULT NULL,
+  `ind29c_no` int(11) DEFAULT NULL,
+  `ind29c_pct` decimal(5,2) DEFAULT NULL,
+  `ind29d_no` int(11) DEFAULT NULL,
+  `ind29d_pct` decimal(5,2) DEFAULT NULL,
+  `ind29e_no` int(11) DEFAULT NULL,
+  `ind29e_pct` decimal(5,2) DEFAULT NULL,
+  `ind29f_no` int(11) DEFAULT NULL,
+  `ind29f_pct` decimal(5,2) DEFAULT NULL,
+  `ind29g_no` int(11) DEFAULT NULL,
+  `ind29g_pct` decimal(5,2) DEFAULT NULL,
+
+  `ind30a_no` int(11) DEFAULT NULL,
+  `ind30a_pct` decimal(5,2) DEFAULT NULL,
+  `ind30b_no` int(11) DEFAULT NULL,
+  `ind30b_pct` decimal(5,2) DEFAULT NULL,
+  `ind30c_no` int(11) DEFAULT NULL,
+  `ind30c_pct` decimal(5,2) DEFAULT NULL,
+  `ind30d_no` int(11) DEFAULT NULL,
+  `ind30d_pct` decimal(5,2) DEFAULT NULL,
+
+  `ind31a_no` int(11) DEFAULT NULL,
+  `ind31a_pct` decimal(5,2) DEFAULT NULL,
+  `ind31b_no` int(11) DEFAULT NULL,
+  `ind31b_pct` decimal(5,2) DEFAULT NULL,
+  `ind31c_no` int(11) DEFAULT NULL,
+  `ind31c_pct` decimal(5,2) DEFAULT NULL,
+  `ind31d_no` int(11) DEFAULT NULL,
+  `ind31d_pct` decimal(5,2) DEFAULT NULL,
+  `ind31e_no` int(11) DEFAULT NULL,
+  `ind31e_pct` decimal(5,2) DEFAULT NULL,
+  `ind31f_no` int(11) DEFAULT NULL,
+  `ind31f_pct` decimal(5,2) DEFAULT NULL,
+  
+  `ind32_no` int(11) DEFAULT NULL,
+  `ind32_pct` decimal(5,2) DEFAULT NULL,
+
+  `ind33_no` int(11) DEFAULT NULL,
+  `ind33_pct` decimal(5,2) DEFAULT NULL,
+
+  `ind34_no` int(11) DEFAULT NULL,
+  `ind34_pct` decimal(5,2) DEFAULT NULL,
+
+  `ind35_no` int(11) DEFAULT NULL,
+  `ind35_pct` decimal(5,2) DEFAULT NULL,
+
+  `ind36_no` int(11) DEFAULT NULL,
+  `ind36_pct` decimal(5,2) DEFAULT NULL,
+  
+  `ind37a` int(11) DEFAULT NULL,
+  `ind37b` int(11) DEFAULT NULL,
+  `ind38` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+
+
+
+
+
+
 --
 -- Table structure for table `bns_reports`
 --
+
+
+
+
 
 CREATE TABLE `bns_reports` (
   `id` int(11) NOT NULL,

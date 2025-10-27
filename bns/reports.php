@@ -145,6 +145,7 @@ function archiveReport(reportId) {
 <body>
 <div class="layout">
 <?php include 'header.php'; ?>
+
 <div class="body-layout">
 <main class="content">
 <div class="toolbar">
