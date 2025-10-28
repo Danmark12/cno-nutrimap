@@ -288,7 +288,7 @@ $fields = [
 
               <tr><td>7. Total Number of Households With Preschool Children 0-59 Months</td><td><input type="number" name="ind7"></td></tr>
               <tr><td>8. Actual Population of Preschool Children 0-59 Months</td><td><input type="number" name="ind8"></td></tr>
-              <tr><td>9. Total Number of Preschool Children 0-50 Months Old Measured During OPT Plus</td><td></td></tr>
+              <tr><td>9. Total Number of Preschool Children 0-50 Months Old Measured During OPT Plus</td><td><input type="number" name="ind9"></td></tr>
               <tr><td>a. Percent (%) Measured Coverage (OPT Plus)</td><td><input type="number" step="0.01" name="ind9a"></td></tr>
   <tr>
     <td>b. Number and Percent (%) of Preschool Children According to Nutritional Status</td>

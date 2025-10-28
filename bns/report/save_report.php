@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'ind6b' => $_POST['ind6b'] ?? null,
         'ind7' => $_POST['ind7'] ?? null,
         'ind8' => $_POST['ind8'] ?? null,
-
+        'ind9' => $_POST['ind9'] ?? null,
         'ind9a' => $_POST['ind9a'] ?? null,
     ];
 

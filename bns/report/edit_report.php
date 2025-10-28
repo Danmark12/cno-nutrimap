@@ -241,7 +241,9 @@ You cannot edit this report because its status is <?= htmlspecialchars($row['sta
     <tr><td>8. Actual Population of Preschool Children 0-59 Months</td>
         <td><input type="number" name="ind8" value="<?= $has_bns ? htmlspecialchars($row['ind8']) : '' ?>" style="width:100px;"></td>
     </tr>
-    <tr><td>9. Total Number of Preschool Children 0-50 Months Old Measured During OPT Plus</td><td></td></tr>
+        <tr><td>9. Total Number of Preschool Children 0-50 Months Old Measured During OPT Plus</td>
+        <td><input type="number" name="ind9" value="<?= $has_bns ? htmlspecialchars($row['ind9']) : '' ?>" style="width:100px;"></td>
+    </tr>
     <tr><td>a. Percent (%) Measured Coverage (OPT Plus)</td>
         <td><input type="text" name="ind9a" value="<?= $has_bns ? htmlspecialchars($row['ind9a']) : '' ?>" style="width:100px;"></td>
     </tr>

@@ -63,6 +63,7 @@ CREATE TABLE `bns_reports` (
 
   `ind8` int(11) DEFAULT NULL,
 
+`ind9` int(11) DEFAULT NULL,
   `ind9a` decimal(5,2) DEFAULT NULL,
   `ind9b1_no` int(11) DEFAULT NULL,
   `ind9b1_pct` decimal(5,2) DEFAULT NULL,

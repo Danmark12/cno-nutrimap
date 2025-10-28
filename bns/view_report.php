@@ -233,7 +233,7 @@ table th:nth-child(2) {
 
   <tr><td>7. Total Number of Households With Preschool Children 0-59 Months</td><td><?= $has_bns ? val($row,'ind7','int') : '—' ?></td></tr>
   <tr><td>8. Actual Population of Preschool Children 0-59 Months</td><td><?= $has_bns ? val($row,'ind8','int') : '—' ?></td></tr>
-  <tr><td>9. Total Number of Preschool Children 0-50 Months Old Measured During OPT Plus</td><td></td></tr>
+    <tr><td>9. Total Number of Preschool Children 0-50 Months Old Measured During OPT Plus</td><td><?= $has_bns ? val($row,'ind9','int') : '—' ?></td></tr>
   <tr><td>a. Percent (%) Measured Coverage (OPT Plus)</td><td><?= $has_bns ? val($row,'ind9a','dec2') : '—' ?></td></tr>
   <tr>
     <td>b. Number and Percent (%) of Preschool Children According to Nutritional Status</td>
@@ -400,7 +400,6 @@ table th:nth-child(2) {
     </td>
   </tr>
   <?php $i++; endforeach; ?>
-</tbody>
   </table>
   
   <div class="page-number">Page 2</div>
@@ -537,7 +536,6 @@ table th:nth-child(2) {
     <td>38. Total Number of Households Beneficiaries of Pantawid Pamilyang Pilipino Program</td>
     <td><?= $has_bns ? val($row,'ind38','int') : '—' ?></td>
   </tr>
-  </tbody>
   </table>
 
   <div class="page-number">Page 3</div>
