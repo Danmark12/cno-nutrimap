@@ -17,55 +17,9 @@ function logActivity($pdo, $user_id, $action) {
     $stmt->execute([$user_id, $action]);
 }
 
-// ✅ Handle bulk actions (Restore All / Delete All)
+// ✅ Handle bulk actions (Delete All only)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['restore_all'])) {
-        // ✅ Check if user has archived (not deleted) reports
-        $check = $pdo->prepare("
-            SELECT id 
-            FROM report_archives
-            WHERE user_id = ? 
-              AND user_type = ? 
-              AND is_archived = 1 
-              AND is_deleted = 0
-        ");
-        $check->execute([$userId, $userType]);
-
-        if ($check->rowCount() > 0) {
-            // 🔹 Restore all archived reports (not deleted)
-            $restore = $pdo->prepare("
-                UPDATE report_archives 
-                SET is_archived = 0, archived_at = NULL 
-                WHERE user_id = ? 
-                  AND user_type = ? 
-                  AND is_archived = 1 
-                  AND is_deleted = 0
-            ");
-            $restore->execute([$userId, $userType]);
-
-            // 🔹 Update reports table (restore previous status or Approved)
-            $updateReports = $pdo->prepare("
-                UPDATE reports 
-                SET status = COALESCE(prev_status, 'Approved')
-                WHERE id IN (
-                    SELECT report_id 
-                    FROM report_archives 
-                    WHERE user_id = ? 
-                      AND user_type = ? 
-                      AND is_deleted = 0
-                )
-            ");
-            $updateReports->execute([$userId, $userType]);
-
-            logActivity($pdo, $userId, "Restored all archived reports");
-            header("Location: archive.php?msg=restored_all");
-            exit();
-        } else {
-            header("Location: archive.php?msg=no_archive");
-            exit();
-        }
-
-    } elseif (isset($_POST['delete_all'])) {
+    if (isset($_POST['delete_all'])) {
         // 🔹 STEP 1: Mark all as deleted for this user
         $delete = $pdo->prepare("
             UPDATE report_archives 
@@ -120,6 +74,7 @@ $stmt->execute([
 ]);
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
 
 <!doctype html>
 <html lang="en">
@@ -185,11 +140,19 @@ $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <option value="date">Newest → Oldest</option>
                   </select>
               
-                  <!-- Bulk Actions -->
-                  <form style="display:inline;" method="post" onsubmit="return confirm('Are you sure?');">
-                    <button type="submit" name="restore_all"><i class="fa fa-undo"></i> Restore All</button>
-                    <button type="submit" name="delete_all"><i class="fa fa-trash"></i> Delete All</button>
+                  <!-- ✅ Fixed Bulk Actions -->
+                  <form style="display:inline;" method="post" onsubmit="return confirm('Are you sure you want to delete all archived reports?');">
+                    <a href="archive/restore_all_report.php" 
+                       onclick="return confirm('Are you sure you want to restore all archived reports?');" 
+                       class="btn" 
+                       style="padding:7px 8px; border:1px solid #ccc; border-radius:5px; text-decoration:none; color:#000; background:#f0f0f0; margin-right:0px;">
+                       <i class="fa fa-undo"></i> Restore All
+                    </a>
+                    <button type="submit" name="delete_all">
+                      <i class="fa fa-trash"></i> Delete All
+                    </button>
                   </form>
+
                 </div>
             </div>
         </div>

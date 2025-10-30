@@ -49,6 +49,23 @@ if ($archive) {
         'uid' => $user_id,
         'utype' => $user_type
     ]);
+
+    // 🔹 Restore report status to its previous state
+    $getPrevStatus = $pdo->prepare("SELECT prev_status FROM reports WHERE id = :rid");
+    $getPrevStatus->execute([':rid' => $reportId]);
+    $prevStatus = $getPrevStatus->fetchColumn();
+
+    if ($prevStatus) {
+        $restoreReport = $pdo->prepare("
+            UPDATE reports 
+            SET status = :prev_status, prev_status = NULL
+            WHERE id = :rid
+        ");
+        $restoreReport->execute([
+            ':prev_status' => $prevStatus,
+            ':rid' => $reportId
+        ]);
+    }
 } else {
     // 🔹 If no record yet, create one marked as active (not archived)
     $insert = $pdo->prepare("
@@ -65,7 +82,7 @@ if ($archive) {
 // ✅ Log the restore activity
 logActivity($pdo, $user_id, "Restored report (ID: $reportId) from archive");
 
-// 🔹 Redirect back to archive page
+// 🔹 Redirect back to reports page instead of archive
 header("Location: ../archive.php?msg=restored");
 exit();
 ?>

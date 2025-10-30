@@ -22,24 +22,25 @@ $pdo->prepare("
     WHERE user_id=? AND user_type=? AND is_archived=1
 ")->execute([$user_id, $user_type]);
 
-// 🔹 Check which reports now deleted by both BNS and CNO
+// 🔹 Only permanently delete REJECTED reports if both sides deleted
 $both = $pdo->query("
-    SELECT report_id
-    FROM report_archives
-    GROUP BY report_id
-    HAVING SUM(CASE WHEN user_type='BNS' AND is_deleted=1 THEN 1 ELSE 0 END)>0
-       AND SUM(CASE WHEN user_type='CNO' AND is_deleted=1 THEN 1 ELSE 0 END)>0
+    SELECT ra.report_id
+    FROM report_archives ra
+    JOIN reports r ON r.id = ra.report_id
+    WHERE r.status = 'Rejected'
+    GROUP BY ra.report_id
+    HAVING SUM(CASE WHEN ra.user_type='BNS' AND ra.is_deleted=1 THEN 1 ELSE 0 END)>0
+       AND SUM(CASE WHEN ra.user_type='CNO' AND ra.is_deleted=1 THEN 1 ELSE 0 END)>0
 ")->fetchAll(PDO::FETCH_COLUMN);
 
-// 🔹 Delete permanently if both deleted
 if ($both) {
     $in = str_repeat('?,', count($both)-1) . '?';
     $pdo->prepare("DELETE FROM bns_reports WHERE report_id IN ($in)")->execute($both);
     $pdo->prepare("DELETE FROM reports WHERE id IN ($in)")->execute($both);
     $pdo->prepare("DELETE FROM report_archives WHERE report_id IN ($in)")->execute($both);
-    logActivity($pdo, $user_id, "Permanently deleted all reports both users removed");
+    logActivity($pdo, $user_id, "Permanently deleted REJECTED reports that both users removed");
 } else {
-    logActivity($pdo, $user_id, "Deleted all reports (waiting for other user)");
+    logActivity($pdo, $user_id, "Deleted all archived reports (BNS side only, waiting for CNO)");
 }
 
 header("Location: ../archive.php?msg=deleted_all");

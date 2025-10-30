@@ -24,57 +24,154 @@ function logActivity($pdo, $user_id, $action) {
 if (isset($_POST['archive_id']) && is_numeric($_POST['archive_id'])) {
     $reportId = (int)$_POST['archive_id'];
 
-    // Check if archive record exists
-    $check = $pdo->prepare("SELECT * FROM report_archives WHERE report_id = :rid AND user_id = :uid AND user_type = :utype");
+    // Check if archive record exists for this user & type
+    $check = $pdo->prepare("
+        SELECT * 
+        FROM report_archives 
+        WHERE report_id = :rid AND user_id = :uid AND user_type = :utype
+    ");
     $check->execute([':rid'=>$reportId, ':uid'=>$userId, ':utype'=>$userType]);
     $archive = $check->fetch();
 
     if ($archive) {
-        $update = $pdo->prepare("UPDATE report_archives SET is_archived=1, is_deleted=0, archived_at=NOW() WHERE report_id=:rid AND user_id=:uid AND user_type=:utype");
+        // 🔹 Update existing record
+        $update = $pdo->prepare("
+            UPDATE report_archives 
+            SET is_archived = 1, is_deleted = 0, archived_at = NOW()
+            WHERE report_id = :rid AND user_id = :uid AND user_type = :utype
+        ");
         $update->execute([':rid'=>$reportId, ':uid'=>$userId, ':utype'=>$userType]);
     } else {
-        $insert = $pdo->prepare("INSERT INTO report_archives (report_id, user_id, user_type, is_archived, is_deleted, archived_at) VALUES (:rid, :uid, :utype, 1, 0, NOW())");
+        // 🔹 Insert new archive record (specific to this user + type)
+        $insert = $pdo->prepare("
+            INSERT INTO report_archives (report_id, user_id, user_type, is_archived, is_deleted, archived_at)
+            VALUES (:rid, :uid, :utype, 1, 0, NOW())
+        ");
         $insert->execute([':rid'=>$reportId, ':uid'=>$userId, ':utype'=>$userType]);
     }
 
+    // 🔹 Log the action
     logActivity($pdo, $userId, "Archived report (ID: $reportId) as $userType");
 
-    // Return JSON response
+    // ✅ Return JSON response
     echo json_encode(['success'=>true]);
     exit();
 }
 
-// --- Pagination for active reports ---
+// --- Pagination setup ---
 $limit = 10; 
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
-// ✅ Fetch Pending + Rejected reports for this user
-$stmt = $pdo->prepare("
-    SELECT r.id, r.report_time, r.report_date, r.status,
-           u.username,
-           b.title AS report_title,
-           b.barangay
-    FROM reports r
-    JOIN users u ON r.user_id = u.id
-    LEFT JOIN bns_reports b ON b.report_id = r.id
-    WHERE r.user_id = :user_id
-      AND r.status IN ('Pending', 'Rejected')
-    ORDER BY r.report_date DESC, r.report_time DESC
-    LIMIT :limit OFFSET :offset
-");
+// ✅ Fetch reports logic
+if ($userType === 'BNS') {
+    // 🧠 BNS view logic:
+    // - Show their own Pending reports.
+    // - Show Rejected reports (even if previously deleted when still Pending).
+    // - Respect archive/delete flags EXCEPT when report is Rejected.
+    $stmt = $pdo->prepare("
+        SELECT r.id, r.report_time, r.report_date, r.status,
+               u.username,
+               b.title AS report_title,
+               b.barangay
+        FROM reports r
+        JOIN users u ON r.user_id = u.id
+        LEFT JOIN bns_reports b ON b.report_id = r.id
+        LEFT JOIN report_archives a 
+          ON a.report_id = r.id 
+          AND a.user_id = :user_id 
+          AND a.user_type = :user_type
+        WHERE (
+                r.user_id = :user_id2
+                AND (
+                    r.status = 'Pending'
+                    OR r.status = 'Rejected'
+                )
+              )
+          AND (
+                (r.status = 'Rejected')
+                OR (
+                    (a.is_deleted = 0 OR a.is_deleted IS NULL)
+                    AND (a.is_archived = 0 OR a.is_archived IS NULL)
+                )
+              )
+        ORDER BY r.report_date DESC, r.report_time DESC
+        LIMIT :limit OFFSET :offset
+    ");
+} else {
+    // 🧠 CNO logic unchanged
+    $stmt = $pdo->prepare("
+        SELECT r.id, r.report_time, r.report_date, r.status,
+               u.username,
+               b.title AS report_title,
+               b.barangay
+        FROM reports r
+        JOIN users u ON r.user_id = u.id
+        LEFT JOIN bns_reports b ON b.report_id = r.id
+        LEFT JOIN report_archives a 
+          ON a.report_id = r.id 
+          AND a.user_id = :user_id 
+          AND a.user_type = :user_type
+        WHERE r.status IN ('Pending', 'Rejected')
+          AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
+          AND (a.is_archived = 0 OR a.is_archived IS NULL)
+        ORDER BY r.report_date DESC, r.report_time DESC
+        LIMIT :limit OFFSET :offset
+    ");
+}
+
 $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+$stmt->bindValue(':user_type', $userType, PDO::PARAM_STR);
+$stmt->bindValue(':user_id2', $userId, PDO::PARAM_INT);
 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// ✅ Count total reports
-$totalStmt = $pdo->prepare("SELECT COUNT(*) FROM reports WHERE user_id=? AND status IN ('Pending','Rejected')");
-$totalStmt->execute([$userId]);
+// ✅ Count total reports for pagination
+if ($userType === 'BNS') {
+    $totalStmt = $pdo->prepare("
+        SELECT COUNT(*) 
+        FROM reports r
+        LEFT JOIN report_archives a 
+          ON a.report_id = r.id 
+          AND a.user_id = ? 
+          AND a.user_type = ?
+        WHERE (
+                r.user_id = ? 
+                AND (r.status = 'Pending' OR r.status = 'Rejected')
+              )
+          AND (
+                (r.status = 'Rejected')
+                OR (
+                    (a.is_deleted = 0 OR a.is_deleted IS NULL)
+                    AND (a.is_archived = 0 OR a.is_archived IS NULL)
+                )
+              )
+    ");
+    $totalStmt->execute([$userId, $userType, $userId]);
+} else {
+    $totalStmt = $pdo->prepare("
+        SELECT COUNT(*) 
+        FROM reports r
+        LEFT JOIN report_archives a 
+          ON a.report_id = r.id 
+          AND a.user_id = ? 
+          AND a.user_type = ?
+        WHERE r.status IN ('Pending', 'Rejected')
+          AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
+          AND (a.is_archived = 0 OR a.is_archived IS NULL)
+    ");
+    $totalStmt->execute([$userId, $userType]);
+}
+
 $totalReports = $totalStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>
+
+
+I NEED TO FIX THE REJECTED DELETE IT STILL SHOW IN THA REPORTS PAGE
+
 
 <!doctype html>
 <html lang="en">
