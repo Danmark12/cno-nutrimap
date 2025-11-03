@@ -2,10 +2,8 @@
 session_start();
 require '../db/config.php'; 
 
-// Enable PDO exceptions for debugging
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// ✅ Ensure user is logged in
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type'])) {
     header("Location: ../auth/login.php");
     exit();
@@ -14,27 +12,22 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_type'])) {
 $userId = $_SESSION['user_id'];
 $userType = $_SESSION['user_type']; // BNS or CNO
 
-// ✅ Activity log function
 function logActivity($pdo, $user_id, $action) {
     $stmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action) VALUES (?, ?)");
     $stmt->execute([$user_id, $action]);
 }
 
-// ✅ Handle archive action via AJAX
+/* ✅ Handle archive */
 if (isset($_POST['archive_id']) && is_numeric($_POST['archive_id'])) {
     $reportId = (int)$_POST['archive_id'];
-
-    // Check if archive record exists for this user & type
     $check = $pdo->prepare("
-        SELECT * 
-        FROM report_archives 
+        SELECT * FROM report_archives 
         WHERE report_id = :rid AND user_id = :uid AND user_type = :utype
     ");
     $check->execute([':rid'=>$reportId, ':uid'=>$userId, ':utype'=>$userType]);
     $archive = $check->fetch();
 
     if ($archive) {
-        // 🔹 Update existing record
         $update = $pdo->prepare("
             UPDATE report_archives 
             SET is_archived = 1, is_deleted = 0, archived_at = NOW()
@@ -42,7 +35,6 @@ if (isset($_POST['archive_id']) && is_numeric($_POST['archive_id'])) {
         ");
         $update->execute([':rid'=>$reportId, ':uid'=>$userId, ':utype'=>$userType]);
     } else {
-        // 🔹 Insert new archive record (specific to this user + type)
         $insert = $pdo->prepare("
             INSERT INTO report_archives (report_id, user_id, user_type, is_archived, is_deleted, archived_at)
             VALUES (:rid, :uid, :utype, 1, 0, NOW())
@@ -50,27 +42,48 @@ if (isset($_POST['archive_id']) && is_numeric($_POST['archive_id'])) {
         $insert->execute([':rid'=>$reportId, ':uid'=>$userId, ':utype'=>$userType]);
     }
 
-    // 🔹 Log the action
     logActivity($pdo, $userId, "Archived report (ID: $reportId) as $userType");
-
-    // ✅ Return JSON response
     echo json_encode(['success'=>true]);
     exit();
 }
 
-// --- Pagination setup ---
+/* ✅ Handle submit/unsubmit */
+if (isset($_POST['submit_action']) && isset($_POST['report_id'])) {
+    $reportId = (int)$_POST['report_id'];
+    $action = $_POST['submit_action'];
+
+    if ($action === 'submit') {
+        $stmt = $pdo->prepare("UPDATE reports SET is_submitted = 1, status = 'Pending' WHERE id = :id");
+        $stmt->execute([':id' => $reportId]);
+        logActivity($pdo, $userId, "Submitted report ID $reportId");
+        echo json_encode(['success'=>true, 'new_state'=>'submitted']);
+        exit();
+    } elseif ($action === 'unsubmit') {
+        $stmt = $pdo->prepare("UPDATE reports SET is_submitted = 0 WHERE id = :id");
+        $stmt->execute([':id' => $reportId]);
+        logActivity($pdo, $userId, "Unsubmitted report ID $reportId");
+        echo json_encode(['success'=>true, 'new_state'=>'unsubmitted']);
+        exit();
+    }
+}
+
+/* ✅ AUTO UPDATE WHEN CNO REJECTS (new part) */
+$stmtRejectFix = $pdo->prepare("
+    UPDATE reports 
+    SET is_submitted = 0 
+    WHERE status = 'Rejected' AND is_submitted = 1
+");
+$stmtRejectFix->execute();
+
+/* --- Pagination --- */
 $limit = 10; 
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
-// ✅ Fetch reports logic
+/* ✅ Fetch reports */
 if ($userType === 'BNS') {
-    // 🧠 BNS view logic:
-    // - Show their own Pending reports.
-    // - Show Rejected reports (even if previously deleted when still Pending).
-    // - Respect archive/delete flags EXCEPT when report is Rejected.
     $stmt = $pdo->prepare("
-        SELECT r.id, r.report_time, r.report_date, r.status,
+        SELECT r.id, r.report_time, r.report_date, r.status, r.is_submitted,
                u.username,
                b.title AS report_title,
                b.barangay
@@ -81,27 +94,16 @@ if ($userType === 'BNS') {
           ON a.report_id = r.id 
           AND a.user_id = :user_id 
           AND a.user_type = :user_type
-        WHERE (
-                r.user_id = :user_id2
-                AND (
-                    r.status = 'Pending'
-                    OR r.status = 'Rejected'
-                )
-              )
-          AND (
-                (r.status = 'Rejected')
-                OR (
-                    (a.is_deleted = 0 OR a.is_deleted IS NULL)
-                    AND (a.is_archived = 0 OR a.is_archived IS NULL)
-                )
-              )
+        WHERE r.user_id = :user_id2
+          AND (r.status = 'Pending' OR r.status = 'Rejected')
+          AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
+          AND (a.is_archived = 0 OR a.is_archived IS NULL)
         ORDER BY r.report_date DESC, r.report_time DESC
         LIMIT :limit OFFSET :offset
     ");
 } else {
-    // 🧠 CNO logic unchanged
     $stmt = $pdo->prepare("
-        SELECT r.id, r.report_time, r.report_date, r.status,
+        SELECT r.id, r.report_time, r.report_date, r.status, r.is_submitted,
                u.username,
                b.title AS report_title,
                b.barangay
@@ -113,6 +115,7 @@ if ($userType === 'BNS') {
           AND a.user_id = :user_id 
           AND a.user_type = :user_type
         WHERE r.status IN ('Pending', 'Rejected')
+          AND r.is_submitted = 1
           AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
           AND (a.is_archived = 0 OR a.is_archived IS NULL)
         ORDER BY r.report_date DESC, r.report_time DESC
@@ -128,7 +131,7 @@ $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// ✅ Count total reports for pagination
+/* ✅ Count total */
 if ($userType === 'BNS') {
     $totalStmt = $pdo->prepare("
         SELECT COUNT(*) 
@@ -137,17 +140,10 @@ if ($userType === 'BNS') {
           ON a.report_id = r.id 
           AND a.user_id = ? 
           AND a.user_type = ?
-        WHERE (
-                r.user_id = ? 
-                AND (r.status = 'Pending' OR r.status = 'Rejected')
-              )
-          AND (
-                (r.status = 'Rejected')
-                OR (
-                    (a.is_deleted = 0 OR a.is_deleted IS NULL)
-                    AND (a.is_archived = 0 OR a.is_archived IS NULL)
-                )
-              )
+        WHERE r.user_id = ?
+          AND (r.status = 'Pending' OR r.status = 'Rejected')
+          AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
+          AND (a.is_archived = 0 OR a.is_archived IS NULL)
     ");
     $totalStmt->execute([$userId, $userType, $userId]);
 } else {
@@ -159,20 +155,15 @@ if ($userType === 'BNS') {
           AND a.user_id = ? 
           AND a.user_type = ?
         WHERE r.status IN ('Pending', 'Rejected')
+          AND r.is_submitted = 1
           AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
           AND (a.is_archived = 0 OR a.is_archived IS NULL)
     ");
     $totalStmt->execute([$userId, $userType]);
 }
-
 $totalReports = $totalStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>
-
-
-I NEED TO FIX THE REJECTED DELETE IT STILL SHOW IN THA REPORTS PAGE
-
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -224,18 +215,43 @@ function archiveReport(reportId) {
       if(xhr.readyState === 4 && xhr.status === 200){
         const response = JSON.parse(xhr.responseText);
         if(response.success){
-          // Remove row instantly
           const row = document.getElementById('report-' + reportId);
           if(row) row.remove();
-          // Optionally redirect to archive page (comment out if not needed)
-          // window.location.href = 'archive.php';
-        } else {
-          alert('Failed to archive report');
-        }
+        } else alert('Failed to archive report');
       }
     };
     xhr.send("archive_id=" + reportId);
   }
+}
+
+function toggleSubmit(reportId, action) {
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "reports.php", true);
+  xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+  xhr.onreadystatechange = function() {
+    if(xhr.readyState === 4 && xhr.status === 200){
+      try {
+        const res = JSON.parse(xhr.responseText);
+        if(res.success){
+          const btnCell = document.querySelector(`#report-${reportId} .actions`);
+          if(res.new_state === 'submitted') {
+            btnCell.innerHTML = `
+              <a href="view_report.php?id=${reportId}" class="view"><i class="fa fa-eye"></i> View</a>
+              <a href="#" class="delete" onclick="toggleSubmit(${reportId},'unsubmit')"><i class="fa fa-undo"></i> Unsubmit</a>
+            `;
+          } else {
+            btnCell.innerHTML = `
+              <a href="view_report.php?id=${reportId}" class="view"><i class="fa fa-eye"></i> View</a>
+              <a href="report/edit_report.php?id=${reportId}" class="edit"><i class="fa fa-edit"></i> Edit</a>
+              <a href="#" class="delete" onclick="archiveReport(${reportId})"><i class="fa fa-archive"></i> Archive</a>
+              <a href="#" class="delete" style="background:#009688" onclick="toggleSubmit(${reportId},'submit')"><i class="fa fa-paper-plane"></i> Submit</a>
+            `;
+          }
+        }
+      } catch(e) { console.error('Invalid response', e); }
+    }
+  };
+  xhr.send("report_id=" + reportId + "&submit_action=" + action);
 }
 </script>
 </head>
@@ -245,6 +261,8 @@ function archiveReport(reportId) {
 
 <div class="body-layout">
 <main class="content">
+
+
 <div class="toolbar">
   <div class="toolbar-left">
     <input type="text" placeholder="Search">
@@ -295,8 +313,15 @@ function archiveReport(reportId) {
       <td><span class="status <?= htmlspecialchars($r['status']) ?>"><?= htmlspecialchars($r['status']) ?></span></td>
       <td class="actions">
         <a href="view_report.php?id=<?= $r['id'] ?>" class="view"><i class="fa fa-eye"></i> View</a>
-        <a href="report/edit_report.php?id=<?= $r['id'] ?>" class="edit"><i class="fa fa-edit"></i> Edit</a>
-        <a href="#" class="delete" onclick="archiveReport(<?= $r['id'] ?>)"><i class="fa fa-archive"></i> Archive</a>
+        <?php if ($userType === 'BNS'): ?>
+          <?php if ($r['is_submitted'] == 1): ?>
+            <a href="#" class="delete" onclick="toggleSubmit(<?= $r['id'] ?>,'unsubmit')"><i class="fa fa-undo"></i> Unsubmit</a>
+          <?php else: ?>
+            <a href="report/edit_report.php?id=<?= $r['id'] ?>" class="edit"><i class="fa fa-edit"></i> Edit</a>
+            <a href="#" class="delete" onclick="archiveReport(<?= $r['id'] ?>)"><i class="fa fa-archive"></i> Archive</a>
+            <a href="#" class="delete" style="background:#009688" onclick="toggleSubmit(<?= $r['id'] ?>,'submit')"><i class="fa fa-paper-plane"></i> Submit</a>
+          <?php endif; ?>
+        <?php endif; ?>
       </td>
     </tr>
   <?php endforeach; ?>

@@ -111,10 +111,10 @@ $offset = ($page - 1) * $limit;
 $search   = isset($_GET['search']) ? trim($_GET['search']) : '';
 $barangay = isset($_GET['barangay']) ? $_GET['barangay'] : 'All';
 $sort     = isset($_GET['sort']) ? $_GET['sort'] : 'new';
-$tab      = isset($_GET['tab']) ? $_GET['tab'] : 'Pending'; // Pending or Approved
+$tab      = isset($_GET['tab']) ? $_GET['tab'] : 'Pending'; // Pending or Rejected ✅ changed here
 
-// --- Base query ---
-$where = ["r.status = :status"];
+// --- Base query (✅ show only submitted reports) ---
+$where = ["r.status = :status", "r.is_submitted = 1"];
 $params = [':status' => $tab];
 
 if ($search !== '') {
@@ -145,7 +145,7 @@ switch ($sort) {
 
 // --- Fetch reports ---
 $sql = "
-    SELECT r.id, r.report_time, r.report_date, r.status,
+    SELECT r.id, r.report_time, r.report_date, r.status, r.is_submitted,
            CONCAT(u.first_name, ' ', u.last_name) AS fullname,
            u.profile_pic, u.barangay,
            b.title AS report_title
@@ -157,8 +157,6 @@ $sql = "
     LIMIT :limit OFFSET :offset
 ";
 $stmt = $pdo->prepare($sql);
-
-// ✅ Bind parameters safely
 foreach ($params as $key => $val) {
     $stmt->bindValue($key, $val);
 }
@@ -184,7 +182,6 @@ $totalReports = $countStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>
 
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -194,22 +191,14 @@ $totalPages = ceil($totalReports / $limit);
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
     body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; }
-    .toolbar {
-        display:flex; justify-content:space-between; align-items:center;
-        padding:10px; background:#fff; border-bottom:1px solid #ddd;
-    }
-    .toolbar-left input {
-        padding:6px 8px; border:1px solid #ccc; border-radius:4px; width:220px;
-    }
+    .toolbar { display:flex; justify-content:space-between; align-items:center; padding:10px; background:#fff; border-bottom:1px solid #ddd; }
+    .toolbar-left input { padding:6px 8px; border:1px solid #ccc; border-radius:4px; width:220px; }
     .toolbar-right { display:flex; gap:10px; align-items:center; }
     .toolbar-right select { padding:6px; border:1px solid #ccc; border-radius:4px; }
 
     .report-panel { background:#fff; margin:10px; border-radius:4px; border:1px solid #ddd; }
     .tabs { display:flex; border-bottom:1px solid #ddd; }
-    .tabs a {
-        flex:1; padding:10px; text-align:center; text-decoration:none;
-        font-weight:bold; color:#333; background:#f9f9f9;
-    }
+    .tabs a { flex:1; padding:10px; text-align:center; text-decoration:none; font-weight:bold; color:#333; background:#f9f9f9; }
     .tabs a.active { background:#fff; border-bottom:3px solid #007bff; color:#007bff; }
 
     table { width:100%; border-collapse:collapse; font-size:14px; }
@@ -217,9 +206,7 @@ $totalPages = ceil($totalReports / $limit);
     th { background:#f9f9f9; }
     td img { width:32px; height:32px; border-radius:50%; margin-right:8px; vertical-align:middle; }
     .actions form { display:inline; }
-    .actions button {
-        border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:5px; color:#fff;
-    }
+    .actions button { border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:5px; color:#fff; }
     .actions .view { background:#17a2b8; }
     .actions .decline { background:#dc3545; }
     .actions .approve { background:#28a745; }
@@ -229,18 +216,13 @@ $totalPages = ceil($totalReports / $limit);
         border:1px solid #ccc; background:#fff; padding:5px 10px; border-radius:4px; text-decoration:none; color:#333; font-size:14px;
     }
     .pagination a.active { background:#007bff; color:#fff; border-color:#007bff; }
-    .pagination a.disabled {
-        pointer-events: none;
-        opacity: 0.5;
-        color: #999;
-        border-color: #ddd;
-        background: #f9f9f9;
-    }
+    .pagination a.disabled { pointer-events:none; opacity:0.5; color:#999; border-color:#ddd; background:#f9f9f9; }
 </style>
 </head>
 <body>
-  <div class="layout">
-    <?php include 'header.php'; ?>
+<div class="layout">
+<?php include 'header.php'; ?>
+
 
 <div class="toolbar">
 <form method="get" style="display:flex; width:100%; justify-content:space-between; align-items:center;">
@@ -273,70 +255,88 @@ $totalPages = ceil($totalReports / $limit);
 <div class="report-panel">
 <div class="tabs">
     <a href="?tab=Pending&search=<?=urlencode($search)?>&barangay=<?=urlencode($barangay)?>&sort=<?=$sort?>" class="<?= $tab=='Pending'?'active':'' ?>">Pending Reports</a>
-    <a href="?tab=Approved&search=<?=urlencode($search)?>&barangay=<?=urlencode($barangay)?>&sort=<?=$sort?>" class="<?= $tab=='Approved'?'active':'' ?>">Approved Reports</a>
+    <a href="?tab=Rejected&search=<?=urlencode($search)?>&barangay=<?=urlencode($barangay)?>&sort=<?=$sort?>" class="<?= $tab=='Rejected'?'active':'' ?>">Rejected Reports</a>
 </div>
 
 <!-- ✅ Pagination block -->
 <div class="pagination">
     <a href="?page=<?= max(1, $page-1) ?>&tab=<?=$tab?>&search=<?= urlencode($search) ?>&barangay=<?= urlencode($barangay) ?>&sort=<?= $sort ?>" class="<?= ($page <= 1) ? 'disabled' : '' ?>">Prev</a>
-    <?php for ($i=1; $i <= $totalPages; $i++): ?>
+    <?php
+    // ✅ Show only 5 page numbers at a time
+    $start = max(1, $page - 2);
+    $end = min($totalPages, $start + 4);
+    for ($i = $start; $i <= $end; $i++): ?>
         <a href="?page=<?= $i ?>&tab=<?=$tab?>&search=<?= urlencode($search) ?>&barangay=<?= urlencode($barangay) ?>&sort=<?= $sort ?>" class="<?= ($i == $page) ? 'active' : '' ?>"><?= $i ?></a>
     <?php endfor; ?>
     <a href="?page=<?= min($totalPages, $page+1) ?>&tab=<?=$tab?>&search=<?= urlencode($search) ?>&barangay=<?= urlencode($barangay) ?>&sort=<?= $sort ?>" class="<?= ($page >= $totalPages) ? 'disabled' : '' ?>">Next</a>
 </div>
 
-<table>
-    <thead>
-    <tr>
-        <th>User</th>
-        <th>Title</th>
-        <th>From</th>
-        <th>Time</th>
-        <th>Date</th>
-        <th>Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-    <?php if ($reports): ?>
-        <?php foreach ($reports as $row): ?>
-        <tr>
-            <td>
-            <?php if ($row['profile_pic']): ?>
-                <img src="../uploads/<?= htmlspecialchars($row['profile_pic']) ?>" alt="Profile">
-            <?php else: ?>
-                <img src="../uploads/default.png" alt="Profile">
+
+<table id="reportTable">
+<thead>
+<tr>
+<th>User</th>
+<th>Title</th>
+<th>From</th>
+<th>Time</th>
+<th>Date</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+<?php if ($reports): ?>
+    <?php foreach ($reports as $row): ?>
+    <tr id="report-<?= $row['id'] ?>">
+        <td>
+        <img src="../uploads/<?= htmlspecialchars($row['profile_pic'] ?: 'default.png') ?>" alt="Profile">
+        <?= htmlspecialchars($row['fullname']) ?>
+        </td>
+        <td><?= htmlspecialchars($row['report_title'] ?? 'N/A') ?></td>
+        <td><?= htmlspecialchars($row['barangay']) ?></td>
+        <td><?= htmlspecialchars($row['report_time']) ?></td>
+        <td><?= htmlspecialchars($row['report_date']) ?></td>
+        <td class="actions">
+            <form method="post" style="display:inline;">
+                <input type="hidden" name="report_id" value="<?= $row['id'] ?>">
+                <button type="submit" name="action" value="View" class="view">View</button>
+            </form>
+            <?php if ($tab == 'Pending'): ?>
+            <form method="post" style="display:inline;">
+                <input type="hidden" name="report_id" value="<?= $row['id'] ?>">
+                <button type="submit" name="action" value="Rejected" class="decline">Decline</button>
+            </form>
+            <form method="post" style="display:inline;">
+                <input type="hidden" name="report_id" value="<?= $row['id'] ?>">
+                <button type="submit" name="action" value="Approved" class="approve">Approve</button>
+            </form>
             <?php endif; ?>
-            <?= htmlspecialchars($row['fullname']) ?>
-            </td>
-            <td><?= htmlspecialchars($row['report_title'] ?? 'N/A') ?></td>
-            <td><?= htmlspecialchars($row['barangay']) ?></td>
-            <td><?= htmlspecialchars($row['report_time']) ?></td>
-            <td><?= htmlspecialchars($row['report_date']) ?></td>
-            <td class="actions">
-                <form method="post" style="display:inline;">
-                    <input type="hidden" name="report_id" value="<?= $row['id'] ?>">
-                    <button type="submit" name="action" value="View" class="view">View</button>
-                </form>
-                <?php if ($tab == 'Pending'): ?>
-                <form method="post" style="display:inline;">
-                    <input type="hidden" name="report_id" value="<?= $row['id'] ?>">
-                    <button type="submit" name="action" value="Rejected" class="decline">Decline</button>
-                </form>
-                <form method="post" style="display:inline;">
-                    <input type="hidden" name="report_id" value="<?= $row['id'] ?>">
-                    <button type="submit" name="action" value="Approved" class="approve">Approve</button>
-                </form>
-                <?php endif; ?>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-    <?php else: ?>
-        <tr><td colspan="6" style="text-align:center;">No reports found.</td></tr>
-    <?php endif; ?>
-    </tbody>
+        </td>
+    </tr>
+    <?php endforeach; ?>
+<?php else: ?>
+    <tr><td colspan="6" style="text-align:center;">No reports found.</td></tr>
+<?php endif; ?>
+</tbody>
 </table>
 </div>
 </div>
+
+<!-- ✅ Auto-refresh simulation: hides unsubmited reports instantly -->
+<script>
+setInterval(() => {
+  fetch('check_unsubmitted.php')
+    .then(res => res.json())
+    .then(data => {
+      if (Array.isArray(data.unsubmitted)) {
+        data.unsubmitted.forEach(id => {
+          const row = document.getElementById('report-' + id);
+          if (row) row.remove();
+        });
+      }
+    })
+    .catch(err => console.error('Polling error:', err));
+}, 4000);
+</script>
 
 </body>
 </html>
