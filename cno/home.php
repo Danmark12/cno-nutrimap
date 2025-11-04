@@ -21,8 +21,8 @@ $adminCount = $pdo->query("SELECT COUNT(*) FROM users WHERE user_type='Admin'")-
 // ✅ BNS count
 $bnsCount = $pdo->query("SELECT COUNT(*) FROM users WHERE user_type='BNS'")->fetchColumn();
 
-// ✅ Total barangays
-$totalBarangays = $pdo->query("SELECT COUNT(DISTINCT barangay) FROM users")->fetchColumn();
+// ✅ Total barangays (fixed to 15)
+$totalBarangays = 15;
 
 // ✅ Total reports (exclude archived or deleted by CNO)
 $totalReportsStmt = $pdo->prepare("
@@ -39,7 +39,7 @@ $totalReportsStmt = $pdo->prepare("
 $totalReportsStmt->execute();
 $totalReports = $totalReportsStmt->fetchColumn();
 
-// ✅ Approved reports (exclude archived or deleted by CNO)
+// ✅ Approved reports
 $approvedReportsStmt = $pdo->prepare("
     SELECT COUNT(*) 
     FROM reports r
@@ -55,7 +55,7 @@ $approvedReportsStmt = $pdo->prepare("
 $approvedReportsStmt->execute();
 $approvedReports = $approvedReportsStmt->fetchColumn();
 
-// ✅ Pending reports (exclude archived or deleted by CNO)
+// ✅ Pending reports
 $pendingReportsStmt = $pdo->prepare("
     SELECT COUNT(*) 
     FROM reports r
@@ -71,7 +71,7 @@ $pendingReportsStmt = $pdo->prepare("
 $pendingReportsStmt->execute();
 $pendingReports = $pendingReportsStmt->fetchColumn();
 
-// ✅ Pending reports list (exclude archived or deleted by CNO)
+// ✅ Pending reports list
 $pendingReportsListStmt = $pdo->prepare("
   SELECT 
     r.id, r.status, r.report_date,
@@ -93,7 +93,7 @@ $pendingReportsListStmt = $pdo->prepare("
 $pendingReportsListStmt->execute();
 $pendingReportsList = $pendingReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// ✅ Approved reports for sidebar (exclude archived or deleted by CNO)
+// ✅ Approved reports for sidebar
 $approvedReportsListStmt = $pdo->prepare("
   SELECT 
     r.id, r.status, r.report_date, b.title
@@ -141,7 +141,8 @@ $approvedReportsList = $approvedReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
 
     /* Dashboard Cards */
     .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px; }
-    .card { border-radius: 12px; padding: 20px; color: white; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .card { border-radius: 12px; padding: 20px; color: white; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: 0 2px 10px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s; }
+    .card:hover { transform: translateY(-3px); }
     .card i { font-size: 24px; margin-bottom: 10px; }
     .card h4 { font-size: 16px; font-weight: 600; margin: 0 0 10px; }
     .card p { font-size: 30px; font-weight: 700; margin-left: 150px; margin-top: 0px; margin-bottom: 0px; }
@@ -171,6 +172,21 @@ $approvedReportsList = $approvedReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
 
     tr.clickable { cursor: pointer; transition: background 0.2s; }
     tr.clickable:hover { background: #f5f5f5; }
+
+    /* Button Styling */
+    .map-btn {
+      background: #fff;
+      color: #009688;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .map-btn:hover {
+      background: rgba(255,255,255,0.9);
+    }
   </style>
 </head>
 <body>
@@ -203,7 +219,7 @@ $approvedReportsList = $approvedReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
         <h2>Dashboard</h2>
 
         <div class="cards">
-          <div class="card users">
+          <div class="card users" onclick="window.location.href='users.php'">
             <i class="fa-solid fa-users"></i>
             <h4>Total Users</h4>
             <p><?= $totalUsers ?></p>
@@ -213,7 +229,7 @@ $approvedReportsList = $approvedReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
           </div>
 
-          <div class="card reports">
+          <div class="card reports" onclick="window.location.href='reports.php'">
             <i class="fa-solid fa-file-alt"></i>
             <h4>Total Reports</h4>
             <p><?= $totalReports ?></p>
@@ -228,9 +244,9 @@ $approvedReportsList = $approvedReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
             <h4>Total Barangays</h4>
             <p><?= $totalBarangays ?></p>
             <div class="sub-info">
-              <div><i class="fa-solid fa-location-dot"></i> 
-                <a href="#" style="color:white;text-decoration:underline;">View Map</a>
-              </div>
+              <button class="map-btn" onclick="window.location.href='mapping.php'">
+                <i class="fa-solid fa-location-dot"></i> View Map
+              </button>
             </div>
           </div>
         </div>

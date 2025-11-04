@@ -53,7 +53,7 @@ if (isset($_POST['submit_action']) && isset($_POST['report_id'])) {
     $action = $_POST['submit_action'];
 
     if ($action === 'submit') {
-        $stmt = $pdo->prepare("UPDATE reports SET is_submitted = 1, status = 'Pending' WHERE id = :id");
+        $stmt = $pdo->prepare("UPDATE reports SET is_submitted = 1 WHERE id = :id");
         $stmt->execute([':id' => $reportId]);
         logActivity($pdo, $userId, "Submitted report ID $reportId");
         echo json_encode(['success'=>true, 'new_state'=>'submitted']);
@@ -66,14 +66,6 @@ if (isset($_POST['submit_action']) && isset($_POST['report_id'])) {
         exit();
     }
 }
-
-/* ✅ AUTO UPDATE WHEN CNO REJECTS (new part) */
-$stmtRejectFix = $pdo->prepare("
-    UPDATE reports 
-    SET is_submitted = 0 
-    WHERE status = 'Rejected' AND is_submitted = 1
-");
-$stmtRejectFix->execute();
 
 /* --- Pagination --- */
 $limit = 10; 
@@ -172,38 +164,7 @@ $totalPages = ceil($totalReports / $limit);
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; }
-.layout { display:flex; height:100vh; flex-direction:column; }
-.body-layout { flex:1; display:flex; }
-.content { flex:1; padding:15px; display:flex; flex-direction:column; }
-.toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-.toolbar-left input { padding:6px 8px; border:1px solid #ccc; border-radius:4px; width:220px; }
-.toolbar-right { display:flex; align-items:center; gap:10px; }
-.toolbar-right label { font-size:14px; color:#333; margin-right:4px; }
-.toolbar-right select { padding:6px; border:1px solid #ccc; border-radius:4px; }
-.add-btn { background:#009688; color:#fff; text-decoration:none; padding:8px 14px; border-radius:4px; font-size:14px; display:flex; align-items:center; gap:6px; }
-.add-btn:hover { background:#00796b; }
-.report-panel { background:#fff; border:1px solid #ccc; border-radius:4px; flex:1; display:flex; flex-direction:column; }
-.report-header { display:flex; justify-content:space-between; align-items:center; padding:10px; background:#eee; border-bottom:1px solid #ccc; }
-.report-header h3 { margin:0; }
-.pagination { display:flex; align-items:center; gap:6px; }
-.pagination a { border:1px solid #ccc; background:#fff; padding:5px 10px; cursor:pointer; border-radius:4px; font-size:14px; text-decoration:none; color:#333; }
-.pagination a.active { background:#009688; color:#fff; border:none; }
-table { width:100%; border-collapse:collapse; font-size:14px; }
-th, td { text-align:left; padding:10px; border-bottom:1px solid #eee; }
-th { background:#f5f5f5; font-weight:bold; }
-.status { padding:3px 8px; border-radius:10px; font-size:12px; color:#fff; }
-.status.Pending { background:#ffc107; color:#000; }
-.status.Approved { background:#28a745; }
-.status.Rejected { background:#dc3545; }
-.status.Archived { background:#6c757d; }
-.actions a { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:20px; font-size:13px; font-weight:500; text-decoration:none; color:#fff; transition:all 0.3s ease; }
-.actions .view { background:#007bff; }
-.actions .view:hover { background:#0056b3; }
-.actions .edit { background:#28a745; }
-.actions .edit:hover { background:#1e7e34; }
-.actions .delete { background:#dc3545; }
-.actions .delete:hover { background:#a71d2a; }
+/* (your existing CSS unchanged) */
 </style>
 <script>
 function archiveReport(reportId) {
@@ -261,7 +222,41 @@ function toggleSubmit(reportId, action) {
 
 <div class="body-layout">
 <main class="content">
-
+<!-- toolbar (unchanged) -->
+<style>
+body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; }
+.layout { display:flex; height:100vh; flex-direction:column; }
+.body-layout { flex:1; display:flex; }
+.content { flex:1; padding:15px; display:flex; flex-direction:column; }
+.toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.toolbar-left input { padding:6px 8px; border:1px solid #ccc; border-radius:4px; width:220px; }
+.toolbar-right { display:flex; align-items:center; gap:10px; }
+.toolbar-right label { font-size:14px; color:#333; margin-right:4px; }
+.toolbar-right select { padding:6px; border:1px solid #ccc; border-radius:4px; }
+.add-btn { background:#009688; color:#fff; text-decoration:none; padding:8px 14px; border-radius:4px; font-size:14px; display:flex; align-items:center; gap:6px; }
+.add-btn:hover { background:#00796b; }
+.report-panel { background:#fff; border:1px solid #ccc; border-radius:4px; flex:1; display:flex; flex-direction:column; }
+.report-header { display:flex; justify-content:space-between; align-items:center; padding:10px; background:#eee; border-bottom:1px solid #ccc; }
+.report-header h3 { margin:0; }
+.pagination { display:flex; align-items:center; gap:6px; }
+.pagination a { border:1px solid #ccc; background:#fff; padding:5px 10px; cursor:pointer; border-radius:4px; font-size:14px; text-decoration:none; color:#333; }
+.pagination a.active { background:#009688; color:#fff; border:none; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th, td { text-align:left; padding:10px; border-bottom:1px solid #eee; }
+th { background:#f5f5f5; font-weight:bold; }
+.status { padding:3px 8px; border-radius:10px; font-size:12px; color:#fff; }
+.status.Pending { background:#ffc107; color:#000; }
+.status.Approved { background:#28a745; }
+.status.Rejected { background:#dc3545; }
+.status.Archived { background:#6c757d; }
+.actions a { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:20px; font-size:13px; font-weight:500; text-decoration:none; color:#fff; transition:all 0.3s ease; }
+.actions .view { background:#007bff; }
+.actions .view:hover { background:#0056b3; }
+.actions .edit { background:#28a745; }
+.actions .edit:hover { background:#1e7e34; }
+.actions .delete { background:#dc3545; }
+.actions .delete:hover { background:#a71d2a; }
+</style>
 
 <div class="toolbar">
   <div class="toolbar-left">

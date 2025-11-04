@@ -195,7 +195,7 @@ function copyTitle() {
         <td><input type="number" name="ind_male" value="<?= $has_bns ? htmlspecialchars($row['ind_male']) : '' ?>" style="width:100px;"></td>
     </tr>
     <tr class="indent"><td>Female</td>
-        <td><input type="number" name="ind_Female" value="<?= $has_bns ? htmlspecialchars($row['ind_female']) : '' ?>" style="width:100px;"></td>
+        <td><input type="number" name="ind_female" value="<?= $has_bns ? htmlspecialchars($row['ind_female']) : '' ?>" style="width:100px;"></td>
     </tr>
 
     <tr><td>2. Total Number of Households</td>

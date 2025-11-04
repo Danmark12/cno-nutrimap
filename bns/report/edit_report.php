@@ -209,7 +209,7 @@ You cannot edit this report because its status is <?= htmlspecialchars($row['sta
         <td><input type="number" name="ind_male" value="<?= $has_bns ? htmlspecialchars($row['ind_male']) : '' ?>" style="width:100px;"></td>
     </tr>
     <tr class="indent"><td>Female</td>
-        <td><input type="number" name="ind_Female" value="<?= $has_bns ? htmlspecialchars($row['ind_female']) : '' ?>" style="width:100px;"></td>
+        <td><input type="number" name="ind_female" value="<?= $has_bns ? htmlspecialchars($row['ind_female']) : '' ?>" style="width:100px;"></td>
     </tr>
 
     <tr><td>2. Total Number of Households</td>
@@ -487,6 +487,24 @@ You cannot edit this report because its status is <?= htmlspecialchars($row['sta
     <?php $i++; endforeach; ?>
 
     <tr class="indent">
+
+     <tr>
+  <td>32. Total Number of Households Using Iodized Salt</td>
+  <td class="number-cell">
+    <div>
+      <input type="number" 
+             name="ind32_no" 
+             value="<?= $has_bns ? htmlspecialchars($row['ind32_no'] ?? '') : '' ?>" 
+             style="width:70px;">
+    </div>
+    <div>
+      <input type="text" 
+             name="ind32_pct" 
+             value="<?= $has_bns ? htmlspecialchars($row['ind32_pct'] ?? '') : '' ?>" 
+             style="width:70px;">
+    </div>
+  </td>
+</tr>
  <tr>
   <td>33. Total Number of Eateries/Carenderia</td>
   <td class="number-cell">

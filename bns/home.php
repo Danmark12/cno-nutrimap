@@ -58,6 +58,24 @@ $pendingStmt = $pdo->prepare("
 $pendingStmt->execute([$userId, $userId]);
 $pendingReports = $pendingStmt->fetchColumn();
 
+// ✅ Rejected reports (exclude archived)
+$rejectedStmt = $pdo->prepare("
+    SELECT COUNT(*) 
+    FROM reports r
+    JOIN bns_reports b ON r.id = b.report_id
+    WHERE r.user_id = ? 
+      AND r.status = 'Rejected'
+      AND NOT EXISTS (
+        SELECT 1 FROM report_archives a
+        WHERE a.report_id = r.id 
+        AND a.user_id = ? 
+        AND a.user_type = 'BNS' 
+        AND a.is_archived = 1
+    )
+");
+$rejectedStmt->execute([$userId, $userId]);
+$rejectedReports = $rejectedStmt->fetchColumn();
+
 // ✅ Approved reports list (My Reports sidebar) - exclude archived
 $approvedListStmt = $pdo->prepare("
     SELECT r.id, b.title 
@@ -128,13 +146,14 @@ $pendingReportsList = $pendingListStmt->fetchAll();
   .showmore { margin-top:auto; font-size:14px; color:#333; cursor:pointer; margin-bottom: 50px; }
   .content { flex:1; padding:15px; display:flex; flex-direction:column; }
   .content h2 { margin:0 0 15px 0; font-size:18px; }
-  .cards { display:flex; gap:15px; margin-bottom:20px; }
-  .card { flex:1; color:white; padding:15px; border-radius:4px; cursor:pointer; }
+  .cards { display:flex; gap:15px; margin-bottom:20px; flex-wrap: wrap; }
+  .card { flex:1; color:white; padding:15px; border-radius:4px; cursor:pointer; min-width:200px; }
   .card .title { font-size:14px; }
   .card .number { font-size:20px; font-weight:bold; margin-left: 200px; }
   .card.total { background:#003d3c; }
   .card.approved { background:#006d6a; }
   .card.pending { background:#009688; }
+  .card.rejected { background:#c0392b; } /* 🔴 New color for rejected */
   .panel { background:white; border:1px solid #ccc; border-radius:4px; padding:15px; flex:1; display:flex; flex-direction:column; }
   .panel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
   .panel-header h3 { margin:0; font-size:16px; }
@@ -202,6 +221,12 @@ $pendingReportsList = $pendingListStmt->fetchAll();
           <div class="title">Pending:</div>
           <div class="number"><?= $pendingReports ?></div>
         </div>
+        <!-- 🟥 New Rejected Card -->
+        <div class="card rejected" id="rejectedCard">
+          <i class="fa-solid fa-times-circle"></i>
+          <div class="title">Rejected:</div>
+          <div class="number"><?= $rejectedReports ?></div>
+        </div>
       </div>
 
       <div class="panel">
@@ -263,6 +288,9 @@ $pendingReportsList = $pendingListStmt->fetchAll();
     });
     document.getElementById('pendingCard').addEventListener('click', () => {
       window.location.href = 'reports.php';
+    });
+    document.getElementById('rejectedCard').addEventListener('click', () => {
+      window.location.href = 'reports.php?tab=rejected';
     });
     document.getElementById('showMoreBtn').addEventListener('click', () => {
       window.location.href = 'report_history.php';
