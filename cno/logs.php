@@ -90,6 +90,10 @@ foreach ($countParams as $key => $val) {
 $countStmt->execute();
 $totalRows = $countStmt->fetchColumn();
 $totalPages = ceil($totalRows / $limit);
+
+// --- Pagination display range ---
+$startPage = max(1, $page - 2);
+$endPage = min($totalPages, $startPage + 4);
 ?>
 <!doctype html>
 <html lang="en">
@@ -104,21 +108,22 @@ $totalPages = ceil($totalRows / $limit);
     .body-layout { display:flex; flex:1; }
     .content { flex:1; padding:20px; display:flex; flex-direction:column; }
     .panel { background:#fff; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.1); margin-bottom:20px; }
-    .panel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
-    .filters { display:flex; justify-content:space-between; align-items:center; }
+    .panel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; }
+    .filters { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
     .search-bar input { width:250px; padding:6px 10px; border:1px solid #ccc; border-radius:6px; }
     .filter-options { display:flex; gap:10px; }
     .filter-options select { padding:6px; border:1px solid #ccc; border-radius:6px; }
     table { width:100%; border-collapse:collapse; font-size:14px; }
     th, td { padding:10px; border-bottom:1px solid #eee; }
     th { font-weight:bold; color:#333; }
-    .pagination { display:flex; gap:5px; }
+    .pagination { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
     .pagination a {
       padding:6px 12px; border:1px solid #ccc; border-radius:6px;
       background:#fff; font-size:13px; text-decoration:none; color:#333;
     }
     .pagination .active { background:#009688; color:#fff; }
     .pagination a.disabled { color:#aaa; pointer-events:none; background:#f9f9f9; }
+    .page-info { font-size:13px; color:#666; margin-left:10px; }
   </style>
 </head>
 <body>
@@ -158,12 +163,18 @@ $totalPages = ceil($totalRows / $limit);
             <div class="pagination">
               <a href="?page=<?= $page-1 ?>&search=<?= urlencode($search) ?>&role=<?= $roleFilter ?>&sort=<?= $sort ?>"
                  class="<?= $page<=1?'disabled':'' ?>">Prev</a>
-              <?php for ($i=1; $i<=$totalPages; $i++): ?>
+
+              <?php for ($i=$startPage; $i<=$endPage; $i++): ?>
                 <a href="?page=<?= $i ?>&search=<?= urlencode($search) ?>&role=<?= $roleFilter ?>&sort=<?= $sort ?>"
                    class="<?= $i==$page?'active':'' ?>"><?= $i ?></a>
               <?php endfor; ?>
+
               <a href="?page=<?= $page+1 ?>&search=<?= urlencode($search) ?>&role=<?= $roleFilter ?>&sort=<?= $sort ?>"
                  class="<?= $page>=$totalPages?'disabled':'' ?>">Next</a>
+
+              <span class="page-info">
+                Page <?= $page ?> of <?= $totalPages ?>
+              </span>
             </div>
           </div>
 

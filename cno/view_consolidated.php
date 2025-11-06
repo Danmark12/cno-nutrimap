@@ -3,11 +3,17 @@
 session_start();
 require '../db/config.php'; // PDO connection
 
-// ✅ Get year from query param
+// ✅ Get year and barangays from query params
 $year = isset($_GET['year']) ? (int) $_GET['year'] : date('Y');
+$barangaysParam = isset($_GET['barangays']) ? trim($_GET['barangays']) : '';
+$barangays = [];
 
-// ✅ Fetch the latest approved report per barangay (using 'barangay' column)
-$stmt = $pdo->prepare("
+if (!empty($barangaysParam)) {
+    $barangays = array_map('trim', explode(',', $barangaysParam));
+}
+
+// ✅ Build SQL query dynamically based on barangays filter
+$sql = "
     SELECT r.id AS reports_id, r.report_date, r.report_time, r.status, b.*
     FROM bns_reports b
     INNER JOIN reports r ON r.id = b.report_id
@@ -18,20 +24,32 @@ $stmt = $pdo->prepare("
         GROUP BY barangay
     ) latest ON b.barangay = latest.barangay AND b.report_id = latest.latest_report_id
     WHERE r.status = 'Approved'
-    ORDER BY r.id ASC
-");
-$stmt->execute([$year]);
+";
+
+// ✅ If barangays are provided, filter them
+$params = [$year];
+if (!empty($barangays)) {
+    $placeholders = implode(',', array_fill(0, count($barangays), '?'));
+    $sql .= " AND b.barangay IN ($placeholders)";
+    $params = array_merge($params, $barangays);
+}
+
+$sql .= " ORDER BY r.id ASC";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (!$reports) {
-    die("<h3>No approved reports found for consolidation in year {$year}!</h3>");
+    $filterNote = (!empty($barangays)) ? " for selected barangays (" . implode(', ', $barangays) . ")" : "";
+    die("<h3>No approved reports found for consolidation in year {$year}{$filterNote}!</h3>");
 }
 
 // ✅ Consolidate only the latest report per barangay
 $consolidated = [];
 foreach ($reports as $r) {
     foreach ($r as $key => $value) {
-        // Only sum numeric indicators (ind1-ind36, including ind7b1_no etc.)
+        // Only sum numeric indicators (ind1–ind36, including ind7b1_no etc.)
         if (preg_match('/^ind\d+/', $key) || preg_match('/^ind\d+[a-z]\d*_no$/', $key)) {
             $consolidated[$key] = ($consolidated[$key] ?? 0) + ((is_numeric($value)) ? $value : 0);
         } else {
@@ -55,6 +73,7 @@ function val($arr, $k, $fmt = null) {
     return htmlspecialchars($v);
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

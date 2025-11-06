@@ -210,8 +210,13 @@ $approvedReportsList = $approvedReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
             <li style="color:#999;">No approved reports</li>
           <?php endif; ?>
         </ul>
+<button class="showmore" onclick="window.location.href='barangay_data.php'" 
+  style="background:none; border:none; color:#007bff; text-decoration:underline; cursor:pointer; font-size:14px; padding:0; margin-right: 170px ;" >
+  Show more
+</button>
 
-        <div class="showmore">Show more</div>
+
+        
       </aside>
 
       <!-- Main Content -->
@@ -244,9 +249,11 @@ $approvedReportsList = $approvedReportsListStmt->fetchAll(PDO::FETCH_ASSOC);
             <h4>Total Barangays</h4>
             <p><?= $totalBarangays ?></p>
             <div class="sub-info">
-              <button class="map-btn" onclick="window.location.href='mapping.php'">
+              <button class="showmore" onclick="window.location.href='mapping.php'" 
+  style="background:none; border:none; color:white; text-decoration:underline; cursor:pointer; font-size:14px; padding:0; margin-top: 1px ;" >
                 <i class="fa-solid fa-location-dot"></i> View Map
-              </button>
+</button>
+
             </div>
           </div>
         </div>
