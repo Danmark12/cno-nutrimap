@@ -8,11 +8,12 @@ $year = isset($_GET['year']) ? (int) $_GET['year'] : date('Y');
 $barangaysParam = isset($_GET['barangays']) ? trim($_GET['barangays']) : '';
 $barangays = [];
 
+// ✅ Decode barangays list
 if (!empty($barangaysParam)) {
     $barangays = array_map('trim', explode(',', $barangaysParam));
 }
 
-// ✅ Build SQL query dynamically based on barangays filter
+// ✅ Build SQL query dynamically based on barangay filters
 $sql = "
     SELECT r.id AS reports_id, r.report_date, r.report_time, r.status, b.*
     FROM bns_reports b
@@ -26,8 +27,9 @@ $sql = "
     WHERE r.status = 'Approved'
 ";
 
-// ✅ If barangays are provided, filter them
 $params = [$year];
+
+// ✅ Apply barangay filter if selected
 if (!empty($barangays)) {
     $placeholders = implode(',', array_fill(0, count($barangays), '?'));
     $sql .= " AND b.barangay IN ($placeholders)";
@@ -45,15 +47,13 @@ if (!$reports) {
     die("<h3>No approved reports found for consolidation in year {$year}{$filterNote}!</h3>");
 }
 
-// ✅ Consolidate only the latest report per barangay
+// ✅ Consolidate data (sum numeric indicators across selected barangays)
 $consolidated = [];
 foreach ($reports as $r) {
     foreach ($r as $key => $value) {
-        // Only sum numeric indicators (ind1–ind36, including ind7b1_no etc.)
         if (preg_match('/^ind\d+/', $key) || preg_match('/^ind\d+[a-z]\d*_no$/', $key)) {
             $consolidated[$key] = ($consolidated[$key] ?? 0) + ((is_numeric($value)) ? $value : 0);
         } else {
-            // For non-numeric, just keep the first value (e.g., year)
             if (!isset($consolidated[$key])) {
                 $consolidated[$key] = $value;
             }
@@ -61,9 +61,10 @@ foreach ($reports as $r) {
     }
 }
 
-$row = $consolidated; // ✅ Use this single row for the entire document
+$row = $consolidated;
 $has_bns = true;
 
+// ✅ Helper: value formatter
 function val($arr, $k, $fmt = null) {
     if (!isset($arr[$k]) || $arr[$k] === null || $arr[$k] === '') return '—';
     $v = $arr[$k];
@@ -72,7 +73,13 @@ function val($arr, $k, $fmt = null) {
     if ($fmt === 'dec2') return number_format((float)$v, 2);
     return htmlspecialchars($v);
 }
+
+// ✅ Barangay list (for display summary)
+$barangayListText = empty($barangays)
+    ? 'All Barangays'
+    : implode(', ', $barangays);
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

@@ -32,7 +32,7 @@ function regenerateConsolidatedFile($pdo, $year) {
     ");
     $reportsStmt->execute([$year]);
     $reports = $reportsStmt->fetchAll(PDO::FETCH_ASSOC);
-
+  
     if (empty($reports)) {
         $checkStmt = $pdo->prepare("SELECT file_name FROM consolidated_reports WHERE year = ?");
         $checkStmt->execute([$year]);
