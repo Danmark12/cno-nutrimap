@@ -150,7 +150,7 @@ $fixedTitle = "Barangay Situational Analysis";
       <main class="content">
         <div class="toolbar">
           <div class="toolbar-left">
-            <input type="text" placeholder="Search">
+        <h3 class="section-title">Barangay Data</h3>
           </div>
           <div class="toolbar-right">
             <label for="sort">Sort by:</label>
@@ -162,7 +162,7 @@ $fixedTitle = "Barangay Situational Analysis";
           </div>
         </div>
 
-        <h3 class="section-title">Barangay Data</h3>
+
         <div class="file-list">
           <?php if ($files): ?>
             <?php foreach ($files as $f): ?>

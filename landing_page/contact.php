@@ -117,6 +117,77 @@
       color: #666;
     }
 
+    /* Message Card */
+    .message-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      margin-top: 30px;
+      padding: 30px;
+    }
+
+    .message-card h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #000;
+    }
+
+    .message-card form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .message-card input,
+    .message-card textarea {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    .message-card input:focus,
+    .message-card textarea:focus {
+      border-color: #00bfff;
+      box-shadow: 0 0 4px rgba(0, 191, 255, 0.3);
+    }
+
+    .message-card textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .message-card button {
+      align-self: flex-start;
+      background: #00bfff;
+      color: #fff;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .message-card button:hover {
+      background: #0099cc;
+    }
+
+    .success-msg {
+      color: green;
+      margin-bottom: 10px;
+      transition: opacity 0.5s ease;
+    }
+
+    .error-msg {
+      color: red;
+      margin-bottom: 10px;
+    }
+
     /* Footer */
     footer {
       background-color: #013241;
@@ -205,6 +276,40 @@
 </head>
 <body>
   <?php include 'header.php'; ?>
+  <?php require_once '../otp/mailer.php'; // ✅ Include PHPMailer configuration ?>
+
+  <?php
+  $successMsg = "";
+  $errorMsg = "";
+
+  if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message'])) {
+      $name = trim($_POST['name']);
+      $email = trim($_POST['email']);
+      $message = trim($_POST['message']);
+
+      if (!empty($name) && !empty($email) && !empty($message)) {
+          $to = "cnonutrimap@gmail.com"; // Admin/CNO email
+          $subject = "New Message from Guest User - $name";
+
+          $body = "
+              <h3>Message form the guest user of CNO nutrimap</h3>
+              <p><strong>Name:</strong> " . htmlspecialchars($name) . "</p>
+              <p><strong>Email:</strong> " . htmlspecialchars($email) . "</p>
+              <p><strong>Message:</strong><br>" . nl2br(htmlspecialchars($message)) . "</p>
+              <hr>
+              <p>This message was sent via the CNO NutriMap Contact Form.</p>
+          ";
+
+          if (sendEmailNotification($to, $subject, $body)) {
+              $successMsg = "Message sent successfully!";
+          } else {
+              $errorMsg = "Failed to send message. Please try again later.";
+          }
+      } else {
+          $errorMsg = "All fields are required.";
+      }
+  }
+  ?>
 
   <div class="container">
     <!-- Contact Information Card -->
@@ -265,6 +370,21 @@
         </div>
       </div>
     </div>
+
+    <!-- Message Card -->
+    <div class="message-card">
+      <h2>Send Us a Message</h2>
+
+      <?php if (!empty($successMsg)) echo "<p class='success-msg' id='successMsg'>$successMsg</p>"; ?>
+      <?php if (!empty($errorMsg)) echo "<p class='error-msg'>$errorMsg</p>"; ?>
+
+      <form method="POST" action="">
+        <input type="text" name="name" placeholder="Your Name" required>
+        <input type="email" name="email" placeholder="Your Email" required>
+        <textarea name="message" placeholder="Write your message here..." required></textarea>
+        <button type="submit" name="send_message">Send</button>
+      </form>
+    </div>
   </div>
 
   <!-- Footer Section -->
@@ -299,5 +419,18 @@
       <p>&copy; 2025 City Nutrition Office | All Rights Reserved.</p>
     </div>
   </footer>
+
+  <!-- ✅ Added JavaScript -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const msg = document.getElementById("successMsg");
+      if (msg) {
+        setTimeout(() => {
+          msg.style.opacity = "0";
+          setTimeout(() => msg.remove(), 500);
+        }, 10000); // 10 seconds
+      }
+    });
+  </script>
 </body>
 </html>
