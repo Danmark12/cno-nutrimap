@@ -288,7 +288,7 @@
       $message = trim($_POST['message']);
 
       if (!empty($name) && !empty($email) && !empty($message)) {
-          $to = "cnonutrimap@gmail.com"; // Admin/CNO email
+          $to = "danmarkpetalcurin@gmail.com"; // Admin/CNO email
           $subject = "New Message from Guest User - $name";
 
           $body = "
@@ -403,7 +403,7 @@
       <div class="footer-contact">
         <h3>Contact Us</h3>
         <p><i class="fa-solid fa-location-dot"></i> El Salvador, Misamis Oriental</p>
-        <p><i class="fa-solid fa-envelope"></i> cnonutrimap@gmail.com</p>
+        <p><i class="fa-solid fa-envelope"></i> danmarkpetalcurin@gmail.com</p>
         <p><i class="fa-solid fa-phone"></i> +63 912 345 6789</p>
       </div>
 
