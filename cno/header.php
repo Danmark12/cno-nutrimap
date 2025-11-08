@@ -74,6 +74,11 @@ $stmt = $pdo->prepare("
   font-size: 18px;
   cursor: pointer;
 }
+.brand img {
+  height: 35px;
+  width: auto;
+  margin-right: 0px;
+}
 .brand i { font-size: 20px; margin-right: 8px; transition: transform 0.3s ease-in-out; }
 .brand.active i { transform: rotate(90deg); }
 .brand .cno { color: #009688; margin-right: 4px; }
@@ -142,13 +147,14 @@ $stmt = $pdo->prepare("
 <header class="topbar">
   <div class="brand" id="menuBtn">
     <i class="fa fa-bars"></i>
+            <img src="../image/cno.png" alt="Logo">
     <span class="cno">CNO</span><span class="nutrimap">NutriMap</span>
   </div>
   <div class="topbar-right">
-    <div class="searchbox">
+    <!-- <div class="searchbox">
       <i class="fa fa-search"></i>
       <input type="text" placeholder="Search">
-    </div>
+    </div> -->
     <div class="bell" id="bellBtn">
       <i class="fa fa-bell"></i>
       <?php if ($unreadCount > 0): ?>

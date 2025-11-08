@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['rep
         }
 
     } elseif ($action === 'View') {
-        header("Location: view_report.php?id=" . $reportId);
+        header("Location: view_report_1.php?id=" . $reportId);
         exit;
     }
 

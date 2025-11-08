@@ -184,9 +184,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <head>
   <meta charset="UTF-8">
   <title>Add Report — CNO NutriMap</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
   body { margin:0; font-family: Arial, sans-serif; background:#f5f5f5; font-size:13px; }
   .layout { display:flex; flex-direction:column; min-height:100vh; }
@@ -194,7 +193,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   .content { flex:1; padding:15px; overflow-y:auto; position:relative; }
   button, .btn { padding:6px 14px; border:none; border-radius:4px; font-size:13px; cursor:pointer; }
   .submit-btn { background:#009688; color:#fff; }
-  .back-btn { background:white; color:black; border:1px solid #999; font-weight:bold; position:absolute; top:15px; right:15px; }
+  .back-btn { background:#ff5722; color:#fff; font-weight:bold; position:absolute; top:15px; right:15px; }
   .form-wrapper { background:#fff; padding:20px; border-radius:6px; max-width:900px; margin:auto; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
   .form-section { margin-bottom:40px; }
   .form-section h3 { text-align:center; margin-bottom:20px; }
@@ -211,8 +210,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   </style>
   </head>
   <body>
+     <?php include 'header.php'; ?>
     <div class="layout">
-      <?php include 'header.php'; ?>
+     
       <div class="body-layout">
         <main class="content">
           <a href="reports.php" class="btn back-btn">Back</a>
@@ -220,10 +220,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <div class="reports-label" style="display:flex; align-items:center; gap:10px;">
     <div style="font-weight:bold; font-size:22px;">Reports</div>
     <div style="display:flex; align-items:center; gap:5px;">
-        <label for="report-title" style="font-size:14px; font-weight:normal;">Title:</label>
+        <label for="report-title" style="font-size:14px; font-weight:normal;">Title:</label> 
         <input type="text" id="report-title" name="title" placeholder="Enter report title"
               style="padding:4px 6px; font-size:14px; height:28px; width:250px;">
     </div>
+                <input type="file" id="csvFile" accept=".csv">
 </div>
 
           <?php if (!empty($success)): ?>
@@ -235,8 +236,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
   <form method="post" onsubmit="copyTitle()">
     <input type="hidden" id="hidden-title" name="title">
-
-    <form method="post"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
 
       <!-- Left: Titles -->
       <div style="text-align:left;">
@@ -522,7 +522,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       'b) Semi Concrete',
       'c) Wooden House',
       'd) Nipa Bamboo House',
-      'e) Barong-Barong Makeshift',
+      'e) Barong-Barong',
       'f) Makeshift'
   ];
   foreach($dwelling_types as $i => $name) {
@@ -602,6 +602,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <div class="form-bottom">
         <button type="submit" class="submit-btn">Submit</button>
       </div>
+      
     </form>
   </div>
 
@@ -611,6 +612,98 @@ function copyTitle() {
         document.getElementById('report-title').value;
 }
   </script>
+
+<script>
+document.getElementById('csvFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const text = event.target.result;
+        const rows = text.split(/\r?\n/).filter(r => r.trim() !== '');
+
+        // Flatten numeric values, including percentages
+        let values = [];
+        for (let i = 5; i < rows.length; i++) { // skip header
+            const cols = rows[i].split(/\t|,/); // split tab or comma
+            cols.forEach(cell => {
+                let val = cell.trim();
+                if (val.endsWith('%')) val = val.replace('%',''); // remove %
+                if (val !== '' && !isNaN(val)) {
+                    values.push(val);
+                }
+            });
+        }
+
+        // Input names in order of your form
+        const inputMapping = [
+          'ind1', 'ind_male', 'ind_female',
+            'ind2', 'ind3', 'ind4', 'ind5',
+            
+            'ind6a', 'ind6b',
+            'ind7', 'ind8',
+            
+            'ind9a',
+            'ind9b1_no','ind9b1_pct','ind9b2_no','ind9b2_pct','ind9b3_no','ind9b3_pct',
+            'ind9b4_no','ind9b4_pct','ind9b5_no','ind9b5_pct','ind9b6_no','ind9b6_pct',
+            'ind9b7_no','ind9b7_pct','ind9b8_no','ind9b8_pct','ind9b9_no','ind9b9_pct',
+
+            'ind10','ind11','ind12','ind13','ind14','ind15','ind16',
+
+            'ind17a_public','ind17a_private','ind17b_public','ind17b_private',
+
+            'ind18','ind19','ind20','ind21',
+
+            'ind22a_no','ind22a_pct','ind22b_no','ind22b_pct','ind22c_no','ind22c_pct',
+            'ind22d_no','ind22d_pct','ind22e_no','ind22e_pct', 'ind22f_no','ind22f_pct', 'ind22g_no','ind22g_pct',
+            
+            'ind23','ind24','ind25','ind26',
+
+            'ind27a_no','ind27a_pct','ind27b_no','ind27b_pct','ind27c_no','ind27c_pct',
+            'ind27d_no','ind27d_pct','ind27e_no','ind27e_pct',
+
+            'ind28a_no','ind28a_pct','ind28b_no','ind28b_pct','ind28c_no','ind28c_pct',
+            'ind28d_no','ind28d_pct',
+
+            'ind29a_no','ind29a_pct','ind29b_no','ind29b_pct','ind29c_no','ind29c_pct',
+            'ind29d_no','ind29d_pct','ind29e_no','ind29e_pct','ind29f_no','ind29f_pct',
+            'ind29g_no','ind29g_pct',
+
+            'ind30a_no','ind30a_pct','ind30b_no','ind30b_pct','ind30c_no','ind30c_pct',
+            'ind30d_no','ind30d_pct',
+
+            'ind31a_no','ind31a_pct','ind31b_no','ind31b_pct','ind31c_no','ind31c_pct',
+            'ind31d_no','ind31d_pct','ind31e_no','ind31e_pct','ind31f_no','ind31f_pct',
+
+            'ind32_no', 'ind32_pct',
+            
+            'ind33_no','ind33_pct',
+            'ind34_no','ind34_pct',
+            'ind35_no','ind35_pct',
+            'ind36_no','ind36_pct',
+            'ind37a','ind37b','ind38'
+        ];
+
+        // Fill the form inputs in order
+        let valueIndex = 0;
+        inputMapping.forEach(name => {
+            const el = document.querySelector(`[name="${name}"]`);
+            if (!el) return;
+            // Skip undefined values
+            while (valueIndex < values.length && (values[valueIndex] === '' || values[valueIndex] === undefined)) {
+                valueIndex++;
+            }
+            el.value = values[valueIndex] || '';
+            valueIndex++;
+        });
+
+        console.log('Form filled with values:', values);
+    };
+
+    reader.readAsText(file);
+});
+</script>
 
         </main>
       </div>

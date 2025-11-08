@@ -85,6 +85,11 @@ foreach ($notifications as $notif) {
   font-size: 20px;
   margin-right: 8px;
 }
+.brand img {
+  height: 35px;
+  width: auto;
+  margin-right: 0px;
+}
 
 .brand .cno {
   color: #009688;
@@ -256,13 +261,14 @@ foreach ($notifications as $notif) {
 <header class="topbar">
   <div class="brand" id="menuBtn">
     <i class="fa fa-bars"></i>
+        <img src="../image/cno.png" alt="Logo">
     <span class="cno">CNO</span><span class="nutrimap">NutriMap</span>
   </div>
   <div class="topbar-right">
-    <div class="searchbox">
+    <!-- <div class="searchbox">
       <i class="fa fa-search"></i>
       <input type="text" placeholder="Search">
-    </div>
+    </div> -->
     <!-- 🔔 Notification Bell -->
     <div class="bell" id="bellBtn">
       <i class="fa fa-bell"></i>

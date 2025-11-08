@@ -72,6 +72,13 @@ $limit = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
+/* ✅ Search Filter */
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$searchSQL = '';
+if ($search !== '') {
+    $searchSQL = " AND b.title LIKE :search ";
+}
+
 /* ✅ Fetch reports */
 if ($userType === 'BNS') {
     $stmt = $pdo->prepare("
@@ -90,6 +97,7 @@ if ($userType === 'BNS') {
           AND (r.status = 'Pending' OR r.status = 'Rejected')
           AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
           AND (a.is_archived = 0 OR a.is_archived IS NULL)
+          $searchSQL
         ORDER BY r.report_date DESC, r.report_time DESC
         LIMIT :limit OFFSET :offset
     ");
@@ -110,6 +118,7 @@ if ($userType === 'BNS') {
           AND r.is_submitted = 1
           AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
           AND (a.is_archived = 0 OR a.is_archived IS NULL)
+          $searchSQL
         ORDER BY r.report_date DESC, r.report_time DESC
         LIMIT :limit OFFSET :offset
     ");
@@ -117,9 +126,14 @@ if ($userType === 'BNS') {
 
 $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
 $stmt->bindValue(':user_type', $userType, PDO::PARAM_STR);
-$stmt->bindValue(':user_id2', $userId, PDO::PARAM_INT);
+if ($userType === 'BNS') {
+    $stmt->bindValue(':user_id2', $userId, PDO::PARAM_INT);
+}
 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+if ($search !== '') {
+    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
+}
 $stmt->execute();
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -128,6 +142,7 @@ if ($userType === 'BNS') {
     $totalStmt = $pdo->prepare("
         SELECT COUNT(*) 
         FROM reports r
+        LEFT JOIN bns_reports b ON b.report_id = r.id
         LEFT JOIN report_archives a 
           ON a.report_id = r.id 
           AND a.user_id = ? 
@@ -136,12 +151,16 @@ if ($userType === 'BNS') {
           AND (r.status = 'Pending' OR r.status = 'Rejected')
           AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
           AND (a.is_archived = 0 OR a.is_archived IS NULL)
+          " . ($search !== '' ? "AND b.title LIKE ?" : "") . "
     ");
-    $totalStmt->execute([$userId, $userType, $userId]);
+    $params = [$userId, $userType, $userId];
+    if ($search !== '') $params[] = "%$search%";
+    $totalStmt->execute($params);
 } else {
     $totalStmt = $pdo->prepare("
         SELECT COUNT(*) 
         FROM reports r
+        LEFT JOIN bns_reports b ON b.report_id = r.id
         LEFT JOIN report_archives a 
           ON a.report_id = r.id 
           AND a.user_id = ? 
@@ -150,12 +169,16 @@ if ($userType === 'BNS') {
           AND r.is_submitted = 1
           AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
           AND (a.is_archived = 0 OR a.is_archived IS NULL)
+          " . ($search !== '' ? "AND b.title LIKE ?" : "") . "
     ");
-    $totalStmt->execute([$userId, $userType]);
+    $params = [$userId, $userType];
+    if ($search !== '') $params[] = "%$search%";
+    $totalStmt->execute($params);
 }
 $totalReports = $totalStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -164,7 +187,38 @@ $totalPages = ceil($totalReports / $limit);
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-/* (your existing CSS unchanged) */
+body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; }
+.layout { display:flex; height:100vh; flex-direction:column; }
+.body-layout { flex:1; display:flex; }
+.content { flex:1; padding:15px; display:flex; flex-direction:column; }
+.toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.toolbar-left input { padding:6px 8px; border:1px solid #ccc; border-radius:4px; width:220px; }
+.toolbar-right { display:flex; align-items:center; gap:10px; }
+.toolbar-right label { font-size:14px; color:#333; margin-right:4px; }
+.toolbar-right select { padding:6px; border:1px solid #ccc; border-radius:4px; }
+.add-btn { background:#009688; color:#fff; text-decoration:none; padding:8px 14px; border-radius:4px; font-size:14px; display:flex; align-items:center; gap:6px; }
+.add-btn:hover { background:#00796b; }
+.report-panel { background:#fff; border:1px solid #ccc; border-radius:4px; flex:1; display:flex; flex-direction:column; }
+.report-header { display:flex; justify-content:space-between; align-items:center; padding:10px; background:#eee; border-bottom:1px solid #ccc; }
+.report-header h3 { margin:0; }
+.pagination { display:flex; align-items:center; gap:6px; }
+.pagination a { border:1px solid #ccc; background:#fff; padding:5px 10px; cursor:pointer; border-radius:4px; font-size:14px; text-decoration:none; color:#333; }
+.pagination a.active { background:#009688; color:#fff; border:none; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th, td { text-align:left; padding:10px; border-bottom:1px solid #eee; }
+th { background:#f5f5f5; font-weight:bold; }
+.status { padding:3px 8px; border-radius:10px; font-size:12px; color:#fff; }
+.status.Pending { background:#ffc107; color:#000; }
+.status.Approved { background:#28a745; }
+.status.Rejected { background:#dc3545; }
+.status.Archived { background:#6c757d; }
+.actions a { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:20px; font-size:13px; font-weight:500; text-decoration:none; color:#fff; transition:all 0.3s ease; }
+.actions .view { background:#007bff; }
+.actions .view:hover { background:#0056b3; }
+.actions .edit { background:#28a745; }
+.actions .edit:hover { background:#1e7e34; }
+.actions .delete { background:#dc3545; }
+.actions .delete:hover { background:#a71d2a; }
 </style>
 <script>
 function archiveReport(reportId) {
@@ -222,45 +276,15 @@ function toggleSubmit(reportId, action) {
 
 <div class="body-layout">
 <main class="content">
-<!-- toolbar (unchanged) -->
-<style>
-body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f5f5f5; }
-.layout { display:flex; height:100vh; flex-direction:column; }
-.body-layout { flex:1; display:flex; }
-.content { flex:1; padding:15px; display:flex; flex-direction:column; }
-.toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-.toolbar-left input { padding:6px 8px; border:1px solid #ccc; border-radius:4px; width:220px; }
-.toolbar-right { display:flex; align-items:center; gap:10px; }
-.toolbar-right label { font-size:14px; color:#333; margin-right:4px; }
-.toolbar-right select { padding:6px; border:1px solid #ccc; border-radius:4px; }
-.add-btn { background:#009688; color:#fff; text-decoration:none; padding:8px 14px; border-radius:4px; font-size:14px; display:flex; align-items:center; gap:6px; }
-.add-btn:hover { background:#00796b; }
-.report-panel { background:#fff; border:1px solid #ccc; border-radius:4px; flex:1; display:flex; flex-direction:column; }
-.report-header { display:flex; justify-content:space-between; align-items:center; padding:10px; background:#eee; border-bottom:1px solid #ccc; }
-.report-header h3 { margin:0; }
-.pagination { display:flex; align-items:center; gap:6px; }
-.pagination a { border:1px solid #ccc; background:#fff; padding:5px 10px; cursor:pointer; border-radius:4px; font-size:14px; text-decoration:none; color:#333; }
-.pagination a.active { background:#009688; color:#fff; border:none; }
-table { width:100%; border-collapse:collapse; font-size:14px; }
-th, td { text-align:left; padding:10px; border-bottom:1px solid #eee; }
-th { background:#f5f5f5; font-weight:bold; }
-.status { padding:3px 8px; border-radius:10px; font-size:12px; color:#fff; }
-.status.Pending { background:#ffc107; color:#000; }
-.status.Approved { background:#28a745; }
-.status.Rejected { background:#dc3545; }
-.status.Archived { background:#6c757d; }
-.actions a { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:20px; font-size:13px; font-weight:500; text-decoration:none; color:#fff; transition:all 0.3s ease; }
-.actions .view { background:#007bff; }
-.actions .view:hover { background:#0056b3; }
-.actions .edit { background:#28a745; }
-.actions .edit:hover { background:#1e7e34; }
-.actions .delete { background:#dc3545; }
-.actions .delete:hover { background:#a71d2a; }
-</style>
+
 
 <div class="toolbar">
   <div class="toolbar-left">
-    <input type="text" placeholder="Search">
+<form method="get" style="display:inline;">
+  <input type="text" name="search" placeholder="Search Title" value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
+  <input type="hidden" name="page" value="1">
+</form>
+
   </div>
   <div class="toolbar-right">
     <label for="sort">Sort by:</label>
@@ -277,9 +301,29 @@ th { background:#f5f5f5; font-weight:bold; }
 <h3>Reports</h3>
 <div class="pagination">
   <a href="?page=<?= max(1, $page-1) ?>">Prev</a>
-  <?php for ($i=1; $i <= $totalPages; $i++): ?>
-    <a href="?page=<?= $i ?>" class="<?= $i==$page ? 'active':'' ?>"><?= $i ?></a>
-  <?php endfor; ?>
+  <?php
+    // ✅ Only show up to 5 page numbers
+    $maxVisible = 5;
+    $startPage = max(1, $page - floor($maxVisible / 2));
+    $endPage = min($totalPages, $startPage + $maxVisible - 1);
+    if ($endPage - $startPage + 1 < $maxVisible) {
+        $startPage = max(1, $endPage - $maxVisible + 1);
+    }
+    
+    if ($startPage > 1) {
+        echo '<a href="?page=1">1</a>';
+        if ($startPage > 2) echo '<span>...</span>';
+    }
+
+    for ($i=$startPage; $i <= $endPage; $i++): ?>
+        <a href="?page=<?= $i ?>" class="<?= $i==$page ? 'active':'' ?>"><?= $i ?></a>
+    <?php endfor;
+
+    if ($endPage < $totalPages) {
+        if ($endPage < $totalPages - 1) echo '<span>...</span>';
+        echo '<a href="?page='.$totalPages.'">'.$totalPages.'</a>';
+    }
+  ?>
   <a href="?page=<?= min($totalPages, $page+1) ?>">Next</a>
 </div>
 </div>

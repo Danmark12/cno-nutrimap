@@ -91,7 +91,7 @@ $approvedListStmt = $pdo->prepare("
         AND a.is_archived = 1
     )
     ORDER BY r.report_date DESC
-    LIMIT 5
+    LIMIT 10
 ");
 $approvedListStmt->execute([$userId, $userId]);
 $approvedReportsList = $approvedListStmt->fetchAll();
@@ -111,7 +111,7 @@ $pendingListStmt = $pdo->prepare("
         AND a.is_archived = 1
     )
     ORDER BY r.report_date DESC
-    LIMIT 5
+    LIMIT 8
 ");
 $pendingListStmt->execute([$userId, $userId]);
 $pendingReportsList = $pendingListStmt->fetchAll();
@@ -255,7 +255,7 @@ $pendingReportsList = $pendingListStmt->fetchAll();
               </tr>
             <?php endforeach; ?>
             <?php if (empty($pendingReportsList)): ?>
-              <tr><td colspan="5" style="text-align:center;color:#999;">No pending reports</td></tr>
+              <tr><td colspan="10" style="text-align:center;color:#999;">No pending reports</td></tr>
             <?php endif; ?>
           </tbody>
         </table>
