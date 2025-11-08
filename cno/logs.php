@@ -32,13 +32,16 @@ $query = "
 
 $params = [];
 
+// ✅ Updated search: only first_name, last_name, and action
 if (!empty($search)) {
-    $query .= " AND (u.first_name LIKE :search 
-                 OR u.last_name LIKE :search 
-                 OR al.action LIKE :search 
-                 OR al.details LIKE :search)";
-    $params[':search'] = "%$search%";
+    $query .= " AND (u.first_name LIKE :search1 
+                     OR u.last_name LIKE :search2 
+                     OR al.action LIKE :search3)";
+    $params[':search1'] = "%$search%";
+    $params[':search2'] = "%$search%";
+    $params[':search3'] = "%$search%";
 }
+
 if ($roleFilter !== 'All') {
     $query .= " AND u.user_type = :roleFilter";
     $params[':roleFilter'] = $roleFilter;
@@ -51,15 +54,14 @@ switch ($sort) {
     default: $query .= " ORDER BY al.created_at DESC"; break;
 }
 
-$query .= " LIMIT :limit OFFSET :offset";
+// ✅ Inject LIMIT and OFFSET as integers directly
+$query .= " LIMIT $limit OFFSET $offset";
 $stmt = $pdo->prepare($query);
 
-// Bind values
+// Bind search and role parameters only
 foreach ($params as $key => $val) {
     $stmt->bindValue($key, $val);
 }
-$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -69,15 +71,19 @@ $countQuery = "
     JOIN users u ON al.user_id = u.id
     WHERE 1=1
 ";
+
 $countParams = [];
 
+// ✅ Updated count search: only first_name, last_name, and action
 if (!empty($search)) {
-    $countQuery .= " AND (u.first_name LIKE :search 
-                     OR u.last_name LIKE :search 
-                     OR al.action LIKE :search 
-                     OR al.details LIKE :search)";
-    $countParams[':search'] = "%$search%";
+    $countQuery .= " AND (u.first_name LIKE :search1 
+                          OR u.last_name LIKE :search2 
+                          OR al.action LIKE :search3)";
+    $countParams[':search1'] = "%$search%";
+    $countParams[':search2'] = "%$search%";
+    $countParams[':search3'] = "%$search%";
 }
+
 if ($roleFilter !== 'All') {
     $countQuery .= " AND u.user_type = :roleFilter";
     $countParams[':roleFilter'] = $roleFilter;
@@ -95,6 +101,8 @@ $totalPages = ceil($totalRows / $limit);
 $startPage = max(1, $page - 2);
 $endPage = min($totalPages, $startPage + 4);
 ?>
+
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -136,11 +144,12 @@ $endPage = min($totalPages, $startPage + 4);
         <!-- Card 1: Search + Filters -->
         <div class="panel">
           <form method="get" class="filters">
-            <div class="search-bar">
-              <input type="text" name="search" placeholder="Search user or action..."
-                     value="<?= htmlspecialchars($search) ?>"
-                     onkeypress="if(event.key==='Enter'){this.form.submit();}">
-            </div>
+<div class="search-bar">
+  <input type="text" name="search" placeholder="Search by First or Last Name"
+         value="<?= htmlspecialchars($search) ?>"
+         onkeypress="if(event.key==='Enter'){this.form.submit();}">
+</div>
+
             <div class="filter-options">
               <select name="role" onchange="this.form.submit()">
                 <option value="All" <?= $roleFilter==='All'?'selected':'' ?>>All</option>

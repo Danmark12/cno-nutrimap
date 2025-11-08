@@ -23,14 +23,15 @@ $paramsActive = [];
 
 // Search filter
 if (!empty($search)) {
-    $queryActive .= " AND (first_name LIKE :search OR last_name LIKE :search OR email LIKE :search OR barangay LIKE :search)";
-    $paramsActive[':search'] = "%$search%";
+    $queryActive .= " AND (LOWER(first_name) LIKE :search_first_active OR LOWER(last_name) LIKE :search_last_active)";
+    $paramsActive[':search_first_active'] = '%' . strtolower($search) . '%';
+    $paramsActive[':search_last_active'] = '%' . strtolower($search) . '%';
 }
 
 // Role filter
 if ($roleFilter !== 'all') {
-    $queryActive .= " AND user_type = :role";
-    $paramsActive[':role'] = $roleFilter;
+    $queryActive .= " AND user_type = :role_active";
+    $paramsActive[':role_active'] = $roleFilter;
 }
 
 // Sorting
@@ -50,14 +51,15 @@ $paramsInactive = [];
 
 // Search filter
 if (!empty($search)) {
-    $queryInactive .= " AND (first_name LIKE :search OR last_name LIKE :search OR email LIKE :search OR barangay LIKE :search)";
-    $paramsInactive[':search'] = "%$search%";
+    $queryInactive .= " AND (LOWER(first_name) LIKE :search_first_inactive OR LOWER(last_name) LIKE :search_last_inactive)";
+    $paramsInactive[':search_first_inactive'] = '%' . strtolower($search) . '%';
+    $paramsInactive[':search_last_inactive'] = '%' . strtolower($search) . '%';
 }
 
 // Role filter
 if ($roleFilter !== 'all') {
-    $queryInactive .= " AND user_type = :role";
-    $paramsInactive[':role'] = $roleFilter;
+    $queryInactive .= " AND user_type = :role_inactive";
+    $paramsInactive[':role_inactive'] = $roleFilter;
 }
 
 // Sorting
@@ -71,6 +73,7 @@ $inactiveUsersStmt = $pdo->prepare($queryInactive);
 $inactiveUsersStmt->execute($paramsInactive);
 $inactiveUsers = $inactiveUsersStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -181,7 +184,7 @@ $inactiveUsers = $inactiveUsersStmt->fetchAll(PDO::FETCH_ASSOC);
         <form method="get" class="controls-row">
           <div class="card-controls">
             <i class="fa fa-search" style="color:#888;"></i>
-            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search" onkeydown="if(event.key==='Enter'){this.form.submit();}">
+<input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search" onkeydown="if(event.key==='Enter'){this.form.submit();}">
           </div>
           <div class="card-controls">
             <select name="role" onchange="this.form.submit()">

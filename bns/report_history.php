@@ -16,6 +16,9 @@ $limit = 10; // reports per page
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
+// --- Search term ---
+$searchTerm = isset($_GET['search']) ? trim($_GET['search']) : '';
+
 // --- Handle archive action ---
 if (isset($_GET['archive_id']) && is_numeric($_GET['archive_id'])) {
     $reportId = (int)$_GET['archive_id'];
@@ -57,52 +60,70 @@ if (isset($_GET['archive_id']) && is_numeric($_GET['archive_id'])) {
         ]);
     }
 
-    // ✅ Redirect to same page
-    header("Location: " . $_SERVER['PHP_SELF'] . "?page=" . $page);
+    // ✅ Redirect to same page (keep search term if any)
+    $redirectUrl = $_SERVER['PHP_SELF'] . "?page=" . $page;
+    if ($searchTerm !== '') {
+        $redirectUrl .= "&search=" . urlencode($searchTerm);
+    }
+    header("Location: " . $redirectUrl);
     exit();
 }
 
-// --- Fetch approved reports for this user only (exclude archived) ---
+// --- Fetch reports (Approved + search by title) ---
+$sqlWhere = "
+    r.status = 'Approved'
+    AND r.user_id = :uid
+    AND r.id NOT IN (
+        SELECT report_id FROM report_archives 
+        WHERE user_id = :uid2 AND user_type = :utype AND is_archived = 1
+    )
+";
+
+$params = [
+    'uid' => $userId,
+    'uid2' => $userId,
+    'utype' => $userType
+];
+
+// Only filter by title if search term exists
+if ($searchTerm !== '') {
+    $sqlWhere .= " AND b.title LIKE :search";
+    $params['search'] = "%$searchTerm%";
+}
+
 $stmt = $pdo->prepare("
-    SELECT r.*, u.username, b.title 
+    SELECT r.*, u.username, b.title
     FROM reports r
     JOIN users u ON r.user_id = u.id
     LEFT JOIN bns_reports b ON b.report_id = r.id
-    WHERE r.status = 'Approved'
-      AND r.user_id = :uid
-      AND r.id NOT IN (
-          SELECT report_id FROM report_archives 
-          WHERE user_id = :uid2 AND user_type = :utype AND is_archived = 1
-      )
+    WHERE $sqlWhere
     ORDER BY r.report_date DESC, r.report_time DESC
     LIMIT :limit OFFSET :offset
 ");
-$stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
-$stmt->bindValue(':uid2', $userId, PDO::PARAM_INT);
-$stmt->bindValue(':utype', $userType, PDO::PARAM_STR);
+
+foreach ($params as $key => $val) {
+    if ($key === 'uid' || $key === 'uid2') {
+        $stmt->bindValue(":$key", $val, PDO::PARAM_INT);
+    } else {
+        $stmt->bindValue(":$key", $val);
+    }
+}
 $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// --- Count total approved reports for this user (exclude archived) ---
+// --- Count total reports for pagination ---
 $totalStmt = $pdo->prepare("
-    SELECT COUNT(*) FROM reports 
-    WHERE status = 'Approved' 
-      AND user_id = :uid 
-      AND id NOT IN (
-          SELECT report_id FROM report_archives 
-          WHERE user_id = :uid2 AND user_type = :utype AND is_archived = 1
-      )
+    SELECT COUNT(*) FROM reports r
+    LEFT JOIN bns_reports b ON b.report_id = r.id
+    WHERE $sqlWhere
 ");
-$totalStmt->execute([
-    'uid' => $userId,
-    'uid2' => $userId,
-    'utype' => $userType
-]);
+$totalStmt->execute($params);
 $totalReports = $totalStmt->fetchColumn();
 $totalPages = ceil($totalReports / $limit);
 ?>
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -166,7 +187,10 @@ $totalPages = ceil($totalReports / $limit);
       <main class="content">
         <div class="toolbar">
           <div class="toolbar-left">
-            <input type="text" placeholder="Search">
+    <form method="get" action="" style="display:flex;">
+        <input type="text" name="search" placeholder="Search Title" value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
+        <button type="submit" style="display:none;"></button>
+    </form>
           </div>
           <div class="toolbar-right">
             <label for="sort">Sort by:</label>
