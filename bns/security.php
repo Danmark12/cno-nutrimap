@@ -9,10 +9,10 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// ✅ Fetch login history for current user (latest first)
+// ✅ Fetch login history for current user (latest first, only active sessions)
 $stmt = $pdo->prepare("SELECT id, browser, ip_address, login_time, logout_time, session_id 
                        FROM login_history 
-                       WHERE user_id = ? 
+                       WHERE user_id = ? AND logout_time IS NULL
                        ORDER BY login_time DESC");
 $stmt->execute([$user_id]);
 $allLogins = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -86,8 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'], $
     }
 }
 ?>
-
-
 
 <!doctype html>
 <html lang="en">
@@ -237,7 +235,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'], $
           <?php if (count($logins) > 0): ?>
             <?php foreach ($logins as $login): 
               $deviceName = strtok($login['browser'], '/'); 
-              $isCurrent = $login['session_id'] === $current_session;
+              // ✅ Compare with current session_id()
+              $isCurrent = $login['session_id'] === session_id();
             ?>
               <div class="device-btn" data-id="<?= $login['id'] ?>" data-current="<?= $isCurrent ? '1':'0' ?>" data-login="<?= htmlspecialchars($login['login_time']) ?>" data-ip="<?= htmlspecialchars($login['ip_address']) ?>">
                 <span class="device-name"><?= htmlspecialchars($deviceName) ?><?= $isCurrent ? " (This device)" : "" ?></span>
@@ -262,9 +261,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'], $
             <?php endif; ?>
             
             <?php if ($password_message): ?>
-<div class="password-message <?= $password_error ? 'error' : '' ?>">
-    <?= htmlspecialchars($password_message) ?>
-</div>
+              <div class="password-message <?= $password_error ? 'error' : '' ?>">
+                <?= htmlspecialchars($password_message) ?>
+              </div>
             <?php endif; ?>
 
             <?php if (!$password_changed): ?>
@@ -296,54 +295,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'], $
     </div>
   </div>
 
- <script>
-  const modal = document.getElementById("logModal");
-  const logDate = document.getElementById("logDate");
-  const logIp = document.getElementById("logIp");
-  const logoutBtn = document.getElementById("logoutBtn");
-  let selectedId = null;
-  let isCurrentDevice = false;
+<script>
+const modal = document.getElementById("logModal");
+const logDate = document.getElementById("logDate");
+const logIp = document.getElementById("logIp");
+const logoutBtn = document.getElementById("logoutBtn");
+let selectedId = null;
+let isCurrentDevice = false;
 
-  document.querySelectorAll(".device-btn").forEach(btn => {
+document.querySelectorAll(".device-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-      selectedId = btn.dataset.id;
-      isCurrentDevice = btn.dataset.current === "1";
+        selectedId = btn.dataset.id;
+        isCurrentDevice = btn.dataset.current === "1";
 
-      logDate.textContent = "Login Date: " + btn.dataset.login;
-      logIp.textContent = "IP Address: " + btn.dataset.ip;
+        logDate.textContent = "Login Date: " + btn.dataset.login;
+        logIp.textContent = "IP Address: " + btn.dataset.ip;
 
-      logoutBtn.style.display = isCurrentDevice ? "none" : "inline-block";
+        // Current device: hide logout
+        logoutBtn.style.display = isCurrentDevice ? "none" : "inline-block";
 
-      modal.style.display = "flex";
+        modal.style.display = "flex";
     });
-  });
+});
 
-  function closeModal() { modal.style.display = "none"; }
+function closeModal() {
+    modal.style.display = "none";
+}
 
-  logoutBtn.addEventListener("click", () => {
+// Force logout other devices
+logoutBtn.addEventListener("click", () => {
     if(confirm("Are you sure you want to log out this device?")) {
-      window.location.href = "force_logout.php?id=" + selectedId;
+        fetch('force_logout.php?id=' + selectedId)
+        .then(res => res.text())
+        .then(data => {
+            // Remove device from the list
+            const btn = document.querySelector(`.device-btn[data-id='${selectedId}']`);
+            if(btn) btn.remove();
+            closeModal();
+        });
     }
-  });
+});
 
-  // ✅ Switch between cards when clicking menu links
-  document.querySelectorAll('.menu-link').forEach(link => {
+// Switch between cards
+document.querySelectorAll('.menu-link').forEach(link => {
     link.addEventListener('click', e => {
-      e.preventDefault();
-      document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
-      document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
-      link.classList.add('active');
-      document.getElementById(link.dataset.target).classList.add('active');
+        e.preventDefault();
+        document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+        link.classList.add('active');
+        document.getElementById(link.dataset.target).classList.add('active');
     });
-  });
+});
 
-  // ✅ Keep "Change Password" active after reload if set by PHP
-  <?php if (!empty($show_change_password) && $show_change_password): ?>
-    document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
-    document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
-    document.querySelector('[data-target="change-password"]').classList.add('active');
-    document.getElementById('change-password').classList.add('active');
-  <?php endif; ?>
+// Keep Change Password active if needed
+<?php if (!empty($show_change_password) && $show_change_password): ?>
+document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
+document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+document.querySelector('[data-target="change-password"]').classList.add('active');
+document.getElementById('change-password').classList.add('active');
+<?php endif; ?>
 </script>
 
 </body>

@@ -229,9 +229,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'], $
           <?php if (count($logins) > 0): ?>
             <?php foreach ($logins as $login): 
               $deviceName = strtok($login['browser'], '/'); 
-              $isCurrent = $login['session_id'] === $current_session;
+              $isCurrent = ($login['session_id'] === session_id()); // ✅ Fixed: correct current session detection
             ?>
-              <div class="device-btn" data-id="<?= $login['id'] ?>" data-current="<?= $isCurrent ? '1':'0' ?>" data-login="<?= htmlspecialchars($login['login_time']) ?>" data-ip="<?= htmlspecialchars($login['ip_address']) ?>">
+              <div class="device-btn" id="device-<?= $login['id'] ?>" data-id="<?= $login['id'] ?>" data-current="<?= $isCurrent ? '1':'0' ?>" data-login="<?= htmlspecialchars($login['login_time']) ?>" data-ip="<?= htmlspecialchars($login['ip_address']) ?>">
                 <span class="device-name"><?= htmlspecialchars($deviceName) ?><?= $isCurrent ? " (This device)" : "" ?></span>
                 <span class="device-time"><?= date('M j, g:i a', strtotime($login['login_time'])) ?></span>
               </div>
@@ -299,20 +299,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'], $
       logIp.textContent = "IP Address: " + btn.dataset.ip;
 
       logoutBtn.style.display = isCurrentDevice ? "none" : "inline-block";
-
       modal.style.display = "flex";
     });
   });
 
   function closeModal() { modal.style.display = "none"; }
 
+  // ✅ Updated logout to instantly remove device after logout
   logoutBtn.addEventListener("click", () => {
-    if(confirm("Are you sure you want to log out this device?")) {
-      window.location.href = "force_logout.php?id=" + selectedId;
+    if (confirm("Are you sure you want to log out this device?")) {
+      fetch("force_logout.php?id=" + selectedId)
+        .then(res => {
+          if (res.ok) {
+            document.getElementById("device-" + selectedId)?.remove();
+            closeModal();
+          } else {
+            alert("Failed to log out this device.");
+          }
+        })
+        .catch(() => alert("Error contacting server."));
     }
   });
 
-  // ✅ Switch between cards when clicking menu links
+  // ✅ Switch between cards
   document.querySelectorAll('.menu-link').forEach(link => {
     link.addEventListener('click', e => {
       e.preventDefault();
@@ -323,7 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'], $
     });
   });
 
-  // ✅ Keep "Change Password" active after reload if set by PHP
+  // ✅ Keep Change Password tab active after submit
   <?php if (!empty($show_change_password) && $show_change_password): ?>
     document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
     document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));

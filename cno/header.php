@@ -9,44 +9,28 @@ $notifications = [];
 $unreadCount   = 0;
 
 if ($userId && $userType === 'CNO') {
-    // Fetch reports including submitted, save_changes, updates
-$stmt = $pdo->prepare("
-    SELECT r.id, 
-           r.status,
-           CONCAT(r.report_date, ' ', r.report_time) AS created_at,
-           u.first_name, 
-           u.last_name,
-           u.profile_pic,
-           CASE
-               WHEN r.status = 'Pending' AND r.prev_status IS NULL THEN 'submitted a report'
-               WHEN r.status = 'Pending' AND r.prev_status IS NOT NULL THEN 'updated the report'
-               WHEN r.status = 'Saved Changes' THEN 'saved changes'
-               ELSE 'performed an action'
-           END AS message,
-           CASE WHEN r.prev_status IS NULL THEN 1 ELSE 0 END AS is_unread
-    FROM reports r
-    JOIN users u ON r.user_id = u.id
-    ORDER BY r.report_date DESC, r.report_time DESC
-    LIMIT 20
-");
-
-
+    // Fetch notifications for CNO
+    $stmt = $pdo->prepare("
+        SELECT n.*, u.first_name, u.last_name, u.profile_pic
+        FROM notifications n
+        LEFT JOIN users u ON n.actor_id = u.id
+        WHERE n.receiver_type = 'CNO'
+        ORDER BY n.created_at DESC
+        LIMIT 20
+    ");
     $stmt->execute();
     $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Count unread
-    $unreadCount = array_reduce($notifications, function($carry, $n) {
-        return $carry + ($n['is_unread'] ? 1 : 0);
-    }, 0);
+    $unreadCount = array_reduce($notifications, fn($carry,$n) => $carry + (!$n['is_read'] ? 1 : 0), 0);
 
     // Split into "New" (<30 mins) and "Earlier" (>30 mins)
     $now = time();
     $newNotifs = [];
     $earlierNotifs = [];
-
     foreach ($notifications as $n) {
         $notifTime = strtotime($n['created_at']);
-        if (($now - $notifTime) <= 1800 && $n['is_unread']) { // 30 mins
+        if (!$n['is_read'] && ($now - $notifTime <= 1800)) {
             $newNotifs[] = $n;
         } else {
             $earlierNotifs[] = $n;
@@ -86,17 +70,6 @@ $stmt = $pdo->prepare("
 
 .topbar-right { display: flex; align-items: center; gap: 15px; }
 
-.searchbox { position: relative; }
-.searchbox input {
-  padding: 8px 30px 8px 30px;
-  border: 1px solid #aaa;
-  border-radius: 4px;
-  width: 220px;
-  font-size: 14px;
-  outline: none;
-}
-.searchbox i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #666; }
-
 .bell { font-size: 20px; cursor: pointer; color: #333; position: relative; }
 .bell .notif-count {
   position: absolute; top: -6px; right: -8px;
@@ -107,7 +80,6 @@ $stmt = $pdo->prepare("
 
 #sidemenu-container { position: fixed; top: 0; left: 0; width: 0; height: 100%; overflow: hidden; z-index: 2000; }
 
-/* 🔔 Notification Dropdown */
 #notifDropdown {
   position: absolute;
   top: 50px; right: 10px;
@@ -147,14 +119,10 @@ $stmt = $pdo->prepare("
 <header class="topbar">
   <div class="brand" id="menuBtn">
     <i class="fa fa-bars"></i>
-            <img src="../image/cno.png" alt="Logo">
+    <img src="../image/cno.png" alt="Logo">
     <span class="cno">CNO</span><span class="nutrimap">NutriMap</span>
   </div>
   <div class="topbar-right">
-    <!-- <div class="searchbox">
-      <i class="fa fa-search"></i>
-      <input type="text" placeholder="Search">
-    </div> -->
     <div class="bell" id="bellBtn">
       <i class="fa fa-bell"></i>
       <?php if ($unreadCount > 0): ?>
@@ -164,7 +132,6 @@ $stmt = $pdo->prepare("
   </div>
 </header>
 
-<!-- 🔔 Notification Dropdown -->
 <div id="notifDropdown">
   <div class="notif-header">
     <span>Notifications</span>
@@ -174,27 +141,26 @@ $stmt = $pdo->prepare("
   <?php if (!empty($newNotifs)): ?>
     <div class="notif-section">New</div>
     <?php foreach ($newNotifs as $n): ?>
-<a href="read_notification.php?id=<?php echo $n['id']; ?>" class="notif-item <?php echo $n['is_unread'] ? 'unread' : ''; ?>">
-    <img src="../uploads/<?php echo $n['profile_pic'] ?? 'default.png'; ?>" alt="user">
-    <div class="text">
-        <strong><?php echo htmlspecialchars($n['first_name'].' '.$n['last_name']); ?></strong>
-        <?php echo $n['message']; ?>
-        <div class="time"><?php echo date("M d, H:i", strtotime($n['created_at'])); ?></div>
-    </div>
-</a>
-
+      <a href="<?= $n['link'] ?>" class="notif-item unread" data-id="<?= $n['id'] ?>">
+        <img src="../uploads/<?= $n['profile_pic'] ?? 'default.png' ?>" alt="user">
+        <div class="text">
+          <strong><?= htmlspecialchars($n['first_name'].' '.$n['last_name']) ?></strong>
+          <?= $n['message'] ?>
+          <div class="time"><?= date("M d, H:i", strtotime($n['created_at'])) ?></div>
+        </div>
+      </a>
     <?php endforeach; ?>
   <?php endif; ?>
 
   <?php if (!empty($earlierNotifs)): ?>
     <div class="notif-section">Earlier</div>
     <?php foreach ($earlierNotifs as $n): ?>
-      <a href="read_notification.php?id=<?php echo $n['id']; ?>" class="notif-item <?php echo $n['is_unread'] ? 'unread' : ''; ?>">
-        <img src="../uploads/<?php echo $n['profile_pic'] ?? 'default.png'; ?>" alt="user">
+      <a href="<?= $n['link'] ?>" class="notif-item <?= !$n['is_read'] ? 'unread' : '' ?>" data-id="<?= $n['id'] ?>">
+        <img src="../uploads/<?= $n['profile_pic'] ?? 'default.png' ?>" alt="user">
         <div class="text">
-          <strong><?php echo htmlspecialchars($n['first_name'].' '.$n['last_name']); ?></strong>
-          <?php echo $n['message']; ?>
-          <div class="time"><?php echo date("M d, H:i", strtotime($n['created_at'])); ?></div>
+          <strong><?= htmlspecialchars($n['first_name'].' '.$n['last_name']) ?></strong>
+          <?= $n['message'] ?>
+          <div class="time"><?= date("M d, H:i", strtotime($n['created_at'])) ?></div>
         </div>
       </a>
     <?php endforeach; ?>
@@ -218,23 +184,50 @@ document.getElementById('menuBtn').addEventListener('click', async () => {
   if (menu) menu.classList.toggle('open');
 });
 
-// ✅ Notification Dropdown Toggle & remove count on click
+// Notification dropdown & dynamic badge
 const bellBtn = document.getElementById('bellBtn');
 const notifDropdown = document.getElementById('notifDropdown');
-const notifCountSpan = bellBtn.querySelector('.notif-count');
 
 bellBtn.addEventListener('click', () => {
-  notifDropdown.style.display = notifDropdown.style.display === 'flex' ? 'none' : 'flex';
-  if (notifCountSpan) notifCountSpan.remove(); // remove number on click
+    notifDropdown.style.display = notifDropdown.style.display === 'flex' ? 'none' : 'flex';
+    const badge = bellBtn.querySelector('.notif-count');
+    if (badge) badge.remove(); // temporary remove badge
 });
 
-document.addEventListener('click', (e) => {
-  if (!bellBtn.contains(e.target) && !notifDropdown.contains(e.target)) {
-    notifDropdown.style.display = 'none';
-  }
+// Mark notification as read via AJAX
+document.querySelectorAll('#notifDropdown .notif-item').forEach(item => {
+    item.addEventListener('click', async e => {
+        e.preventDefault();
+        const id = item.dataset.id;
+        if (!id) return;
+        try {
+            const resp = await fetch(`read_notification.php?id=${id}`);
+            const data = await resp.json();
+            if (data.success) item.classList.remove('unread');
+            // navigate to the link
+            window.location.href = item.getAttribute('href');
+        } catch(err) { console.error(err); }
+    });
 });
 
-// ✅ Side menu listeners
+// Periodically check for new notifications and update badge
+setInterval(() => {
+    fetch('fetch_unread_count.php')
+        .then(r => r.json())
+        .then(data => {
+            let badge = bellBtn.querySelector('.notif-count');
+            if (data.count > 0) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.classList.add('notif-count');
+                    bellBtn.appendChild(badge);
+                }
+                badge.textContent = data.count;
+            } else if (badge) badge.remove();
+        });
+}, 10000);
+
+// Side menu listeners
 function attachSideMenuListeners() {
   const menu = document.getElementById('sideMenu');
   if (!menu) return;
