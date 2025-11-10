@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 require '../db/config.php';
@@ -127,12 +128,12 @@ if ($hasApproved == 0) $consolidatedFiles = [];
     .toolbar-left { display:flex; align-items:center; gap:15px; flex-wrap:wrap; }
     .toolbar-left input[type="text"], select { padding:6px 10px; border:1px solid #ccc; border-radius:6px; min-width:150px; background:white; }
     .toolbar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .file-card { background:#fff; border-radius:12px; padding:15px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.1); margin-bottom:10px; }
+    .file-card { background:#fff; border-radius:12px; padding:15px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.1); margin-bottom:10px; cursor:pointer; }
     .file-card span { font-size:14px; color:#333; }
     .export-btn { color:#009688; font-weight:bold; text-decoration:none; cursor:pointer; }
     label { font-weight:normal; color:#333; font-size:14px; }
 
-    /* ✅ Floating Barangay Selection Card */
+    /* ✅ Floating Export Selection Card with Barangay checkboxes */
     .barangay-card {
       position: fixed;
       top: 50%;
@@ -146,8 +147,8 @@ if ($hasApproved == 0) $consolidatedFiles = [];
       z-index: 9999;
       display: none;
     }
-    .barangay-card h3 { margin-top:0; font-size:18px; text-align:center; }
-    .barangay-list { max-height: 200px; overflow-y:auto; border:1px solid #ccc; padding:10px; border-radius:8px; margin-bottom:15px; }
+    .barangay-card h3 { margin-top:0; font-size:18px; text-align:center; margin-bottom:10px; }
+    .barangay-list { max-height:200px; overflow-y:auto; border:1px solid #ccc; padding:10px; border-radius:8px; margin-bottom:15px; }
     .barangay-list label { display:block; margin-bottom:5px; }
     .barangay-card button {
       padding: 8px 12px;
@@ -216,16 +217,26 @@ if ($hasApproved == 0) $consolidatedFiles = [];
         <?php foreach ($consolidatedFiles as $file): ?>
           <div class="file-card" data-year="<?= htmlspecialchars($file['year']) ?>">
             <span>
-              <a href="view_consolidated.php?year=<?= htmlspecialchars($file['year']) ?>&barangay=<?= urlencode($selectedBarangay) ?>"
-                 style="text-decoration:none; color:#333; font-weight:bold;">
-                Consolidated Health and Nutrition Data (<?= htmlspecialchars($file['year']) ?>)
-                — <?= htmlspecialchars($selectedBarangay) ?>
-              </a>
+              <?php if ($selectedBarangay == 'All'): ?>
+                <a href="view_consolidated.php?year=<?= htmlspecialchars($file['year']) ?>&barangay=All"
+                   style="text-decoration:none; color:#333; font-weight:bold;">
+                  Consolidated Health and Nutrition Data (<?= htmlspecialchars($file['year']) ?>) — All Barangays
+                </a>
+              <?php else: ?>
+                <a href="view_barangay.php?year=<?= htmlspecialchars($file['year']) ?>&barangay=<?= urlencode($selectedBarangay) ?>"
+                   style="text-decoration:none; color:#333; font-weight:bold;">
+                  <?= htmlspecialchars($selectedBarangay) ?> Health and Nutrition Data (<?= htmlspecialchars($file['year']) ?>)
+                </a>
+              <?php endif; ?>
             </span>
             <div>
               <span><?= isset($file['updated_at']) ? date("m-d-Y", strtotime($file['updated_at'])) : date("m-d-Y") ?></span>
               &nbsp; | &nbsp;
-              <a class="export-btn" onclick="openBarangayCard('<?= htmlspecialchars($file['file_name']) ?>', '<?= htmlspecialchars($file['year']) ?>')">Export</a>
+              <?php if ($selectedBarangay == 'All'): ?>
+                <a class="export-btn" onclick="openExportCard('<?= htmlspecialchars($file['year']) ?>')">Export</a>
+              <?php else: ?>
+                <a class="export-btn" href="export_barangay_report.php?year=<?= htmlspecialchars($file['year']) ?>&barangay=<?= urlencode($selectedBarangay) ?>">Export</a>
+              <?php endif; ?>
             </div>
           </div>
         <?php endforeach; ?>
@@ -235,10 +246,10 @@ if ($hasApproved == 0) $consolidatedFiles = [];
     </div>
   </div>
 
-  <!-- ✅ Overlay and Barangay Selection Card -->
+  <!-- ✅ Overlay and Export Selection Card (for ALL) -->
   <div class="overlay" id="overlay"></div>
-  <div class="barangay-card" id="barangayCard">
-    <h3>Select Barangays to Include</h3>
+  <div class="barangay-card" id="exportCard">
+    <h3>Select Barangays to Export</h3>
     <div>
       <label><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"> Select All</label>
     </div>
@@ -250,30 +261,27 @@ if ($hasApproved == 0) $consolidatedFiles = [];
     <div class="card-actions">
       <button class="btn-view" onclick="viewSelected()">View</button>
       <button class="btn-export" onclick="exportSelected()">Export</button>
-      <button class="btn-cancel" onclick="closeBarangayCard()">Cancel</button>
+      <button class="btn-cancel" onclick="closeExportCard()">Cancel</button>
     </div>
   </div>
 
   <script>
-    let selectedFile = '';
     let selectedYear = '';
 
-    function openBarangayCard(file, year) {
-      selectedFile = file;
+    function openExportCard(year) {
       selectedYear = year;
       document.getElementById('overlay').style.display = 'block';
-      document.getElementById('barangayCard').style.display = 'block';
+      document.getElementById('exportCard').style.display = 'block';
     }
 
-    function closeBarangayCard() {
+    function closeExportCard() {
       document.getElementById('overlay').style.display = 'none';
-      document.getElementById('barangayCard').style.display = 'none';
+      document.getElementById('exportCard').style.display = 'none';
     }
 
     function toggleSelectAll() {
-      const checkboxes = document.querySelectorAll('.barangay-checkbox');
       const checked = document.getElementById('selectAll').checked;
-      checkboxes.forEach(cb => cb.checked = checked);
+      document.querySelectorAll('.barangay-checkbox').forEach(cb => cb.checked = checked);
     }
 
     function getSelectedBarangays() {
@@ -285,14 +293,13 @@ if ($hasApproved == 0) $consolidatedFiles = [];
     function viewSelected() {
       const brgys = getSelectedBarangays();
       if (brgys.length === 0) { alert('Please select at least one barangay'); return; }
-      // ✅ Show only selected barangays in view_consolidated
-      window.location.href = 'view_consolidated.php?year=' + selectedYear + '&barangays=' + encodeURIComponent(brgys.join(','));
+      window.location.href = 'view_export_reports.php?year=' + selectedYear + '&barangays=' + encodeURIComponent(brgys.join(','));
     }
 
     function exportSelected() {
       const brgys = getSelectedBarangays();
       if (brgys.length === 0) { alert('Please select at least one barangay'); return; }
-      window.location.href = '../exports/' + selectedFile;
+      window.location.href = 'export_consolidated.php?year=' + selectedYear + '&barangays=' + encodeURIComponent(brgys.join(','));
     }
 
     function sortFiles(order) {

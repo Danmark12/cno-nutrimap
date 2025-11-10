@@ -180,17 +180,31 @@
       color: #ddd;
     }
 
-    .footer-contact h3,
-    .footer-social h3 {
+    .footer-social h3,
+    .footer-title {
       color: #00e0d1;
       font-size: 18px;
       margin-bottom: 10px;
     }
 
-    .footer-contact p {
-      font-size: 15px;
-      margin-bottom: 5px;
+    .footer-links {
+      list-style: none;
+      padding: 0;
+    }
+
+    .footer-links li {
+      margin-bottom: 8px;
+    }
+
+    .footer-links a {
       color: #ccc;
+      text-decoration: none;
+      font-size: 15px;
+      transition: 0.3s;
+    }
+
+    .footer-links a:hover {
+      color: #00e0d1;
     }
 
     .footer-social a {
@@ -288,16 +302,20 @@
           </div>
         </div>
 
-        <div class="footer-contact">
-          <h3>Contact Us</h3>
-          <p><i class="fa-solid fa-location-dot"></i> El Salvador, Misamis Oriental</p>
-          <p><i class="fa-solid fa-envelope"></i> cnonutrimap@gmail.com</p>
-          <p><i class="fa-solid fa-phone"></i> +63 912 345 6789</p>
+        <div class="footer-legal">
+          <h3 class="footer-title">Legal & Support</h3>
+          <ul class="footer-links">
+            <li><a href="footer/terms.php">Terms of Use</a></li>
+            <li><a href="footer/privacy.php">Privacy Policy</a></li>
+            <li><a href="footer/cookies.php">Cookies</a></li>
+            <li><a href="footer/help.php">Help</a></li>
+            <li><a href="footer/faqs.php">FAQs</a></li>
+          </ul>
         </div>
 
         <div class="footer-social">
           <h3>Follow Us</h3>
-          <a href="#"><i class="fab fa-facebook"></i></a>
+          <a href="https://www.facebook.com/profile.php?id=100070642943154"><i class="fab fa-facebook"></i></a>
           <a href="#"><i class="fab fa-twitter"></i></a>
           <a href="#"><i class="fab fa-instagram"></i></a>
         </div>

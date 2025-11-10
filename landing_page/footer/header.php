@@ -133,7 +133,7 @@
 
 <header>
     <div class="logo" onclick="window.location.href='home.php'">
-        <img src="../image/cno.png" alt="CNO Logo">
+        <img src="../../image/cno.png" alt="CNO Logo">
         <div class="logo-text">
             <span class="cno">CNO</span> <span class="nutrim">NutriMap</span>
         </div>
@@ -142,19 +142,19 @@
     <nav>
         <ul>
             <li><a href="home.php" class="nav-link active">HOME</a></li>
-            <li><a href="map.php" class="nav-link">MAP</a></li>
+            <li><a href="map.php" class="nav-link">NUTRITIONAL MAP</a></li>
             <li class="dropdown">
                 <a href="" class="nav-link">GET TO KNOW US ▾</a>
                 <ul class="dropdown-menu">
-                    <li><a href="organizational_chart.php">Organizational Chart</a></li>
-                    <li><a href="mission.php">Mission</a></li>
-                    <li><a href="vision.php">Vision</a></li>
-                    <li><a href="goal.php">Goal</a></li>
-                    <li><a href="history.php">History</a></li>
+                    <li><a href="../organizational_chart.php">Organizational Chart</a></li>
+                    <li><a href="../mission.php">Mission</a></li>
+                    <li><a href="../vision.php">Vision</a></li>
+                    <li><a href="../goal.php">Goal</a></li>
+                    <li><a href="../history.php">History</a></li>
                 </ul>
             </li>
-            <li><a href="contact.php" class="nav-link">CONTACT US</a></li>
-            <li><a href="../login.php" class="login-btn">LOGIN</a></li>
+            <li><a href="../contact.php" class="nav-link">CONTACT US</a></li>
+            <li><a href="../../login.php" class="login-btn">LOGIN</a></li>
         </ul>
     </nav>
 </header>
