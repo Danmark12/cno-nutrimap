@@ -247,44 +247,54 @@
     <div class="history-header">
       <h1>Our History</h1>
       <p>
-        The history of the City Nutrition Office of El Salvador, Misamis Oriental, is closely tied 
-        to the city’s development and the efforts to combat malnutrition. The office was established 
-        to address challenges in food availability and nutrition through community-driven initiatives.
+        The City Nutrition Office of El Salvador City, Misamis Oriental, has faced persistent challenges in being prioritized, 
+        despite significant strides in program implementation. Guided by the mantra <strong>“Wag mahiya, Isiksik ang sarili sa Local Chief Executive”</strong>, the office continuously lobbied for proper recognition and resources.
       </p>
     </div>
 
     <div class="timeline">
       <div class="timeline-item">
         <div class="timeline-content">
-          <h3>Early Beginnings</h3>
+          <h3>2016 - Initial Establishment</h3>
           <p>
-            The City Nutrition Office (CNO) of El Salvador City began its mission to improve 
-            community nutrition awareness, working with local leaders to promote health and combat 
-            malnutrition among residents.
+            The CNO was lodged at the City Health Office (CHO), occupying a shared room with PopCom (2 staff) and Nutrition (CNAO & 2 staff). Space was limited and visibility for the nutrition program was low.
           </p>
-          <img src="../image/history1.jpg" alt="Early Beginnings" class="timeline-img">
         </div>
       </div>
 
       <div class="timeline-item">
         <div class="timeline-content">
-          <h3>Program Development</h3>
+          <h3>2018 - Request for a Separate Office</h3>
           <p>
-            Over the years, the CNO expanded its initiatives with evidence-based nutrition programs, 
-            outreach campaigns, and health education, emphasizing family wellness and child growth.
+            CNAO requested Dr. Tangcalagan of CHO for a dedicated office. Nutrition staff were then transferred to Laboratory Room 1 (Admin) to address operational needs.
           </p>
-          <img src="../image/history2.jpg" alt="Program Development" class="timeline-img">
         </div>
       </div>
 
       <div class="timeline-item">
         <div class="timeline-content">
-          <h3>Digital Transformation</h3>
+          <h3>2021 - Space Challenges</h3>
           <p>
-            The creation of <strong>CNO NutriMap</strong> marked a major step in modernization — 
-            introducing data collection, analysis, and visualization to guide efficient decision-making.
+            Laboratory operations required the current nutrition office. CNAO lobbied the Local Chief Executive (LCE) to transfer the Nutrition Office to the vacated Tourism Office to ensure proper space and recognition.
           </p>
-          <img src="../image/history3.jpg" alt="Digital Transformation" class="timeline-img">
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-content">
+          <h3>1st Attempt - Verbal Lobbying</h3>
+          <p>
+            In January 2021, CNAO Clapano visited the Mayor to verbally request a separate office. This initial effort helped bring attention to the need, and the office was temporarily moved to the Tourism Office.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-item">
+        <div class="timeline-content">
+          <h3>2nd Attempt - Written Request</h3>
+          <p>
+            On February 21, 2021, CNAO Clapano submitted a written request to Mayor Lignes for a dedicated Nutrition Office. With the Mayor’s approval, the request was forwarded to the City Engineering Office for a Program of Works, with an approved budget of 1.6 million pesos, marking a major milestone in institutional recognition of the nutrition program.
+          </p>
         </div>
       </div>
 
@@ -292,10 +302,8 @@
         <div class="timeline-content">
           <h3>Today and Beyond</h3>
           <p>
-            Today, the City Nutrition Office continues to lead efforts toward a healthier future — 
-            integrating technology, data, and collaboration to build sustainable nutrition programs.
+            The City Nutrition Office now continues its mission with proper facilities, integrating technology and data-driven solutions to provide sustainable nutrition programs for the community.
           </p>
-          <img src="../image/history4.jpg" alt="Today and Beyond" class="timeline-img">
         </div>
       </div>
     </div>
@@ -307,10 +315,8 @@
       <div class="footer-logo">
         <h2><span>CNO</span> NutriMap</h2>
         <div class="footer-about">
-          <p>
-            Dedicated to improving the nutritional health of our community through
-          </p>
-          <P>data-driven insights, collaboration, and sustainable nutrition programs.</P>
+          <p>Dedicated to improving the nutritional health of our community through</p>
+          <p>data-driven insights, collaboration, and sustainable nutrition programs.</p>
         </div>
       </div>
 
